@@ -1,0 +1,14 @@
+{#
+	Builds a call to action block 
+#}
+<div class='call_to_action'>
+	{% if item.data.phone -%}
+		<p>Call us on 0800 83 83 83</p>
+	{%- endif %}
+	{% if item.data.web -%}
+		<p>Fill in <a href="">this form</a></p>
+	{%- endif %}
+	{% if item.data.branch -%}
+		<p><a href="">Find a branch</a></p>
+	{%- endif %}
+</div>

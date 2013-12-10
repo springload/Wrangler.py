@@ -1,0 +1,5 @@
+<h3>{{item.data.title}}</h3>
+<div class='calculator' data-calulator="{{item.data.type}}" data-calulator-open-by-default="{{item.data.options.open_by_default}}">
+{% include "calculators/" + item.data.type + ".j2" with context %}
+
+</div>

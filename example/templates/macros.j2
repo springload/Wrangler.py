@@ -1,0 +1,39 @@
+{# 
+	Loads block templates from the block store.
+
+	This should be abstracted so that it loads block templates from a directory
+	automatically, and includes them as individual files. Otherwise the
+	macros file will get out of hand!
+#}
+{% macro parse_blocks(content) %}
+	{% for item in content %}
+		{% if item.type %}
+		{% include "blocks/" + item.type + ".j2" with context %}
+		{% endif %}
+	{% endfor %}
+{% endmacro %}
+
+
+{#
+	Prepares a placeholder for QuickTube.js
+#}
+{% macro video(source, id)%}
+
+{%- endmacro %}
+
+{#
+	Create a call to action for customer interactions
+#}
+{% macro call_to_action(data)%}
+
+{%- endmacro %}
+
+
+{#
+	Inline a calculator
+	- These are loaded via iFrames
+	- Some init methods may be needed in your template
+#}
+{% macro calculator(data)%}
+
+{%- endmacro %}

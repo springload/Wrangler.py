@@ -1,8 +1,75 @@
-<html>
-	<head>
-	</head>
-	<body>
-		{% block content %}
-		{% endblock %}
-	</body>
+{% import "macros.j2" as macros %}
+<!doctype html>
+<html lang="en">
+<head>
+	{#
+        Variables
+        ---------
+        site - the environment
+        template - the page's yk_data hash
+        content - the page's data hash
+
+    #}
+    <title>{% block title %}{{template.title|default("Kiwibank")}}{% endblock %}</title>
+    <meta name='description' content='{% block description%}{{template.description|default("Kiwibank description")}}{% endblock %}'>
+    <meta name='keywords' content='{% block keywords%}{% endblock %}{% for word in template.keywords %}{{word}}{% if not loop.last %},{% endif %} {% endfor %}'>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="{{site.paths.css}}/screen.css">
+    {% block css -%}
+    {% for file in template.css %}
+    <link rel="stylesheet" href="{{site.paths.css}}/{{file}}">
+    {% endfor %}
+    {%- endblock %}
+</head>
+<body>
+    {% block debug %}{% endblock %}
+
+    <ul class='nav'>
+        <li><a href="#">some link</a></li>
+        <li><a href="#">some link 2</a></li>
+        <li><a href="#">some link 3</a></li>
+    </ul>
+
+    <div class='ratio-16-9'>
+        <div class='ratio__content hero'>
+            <p class='intro block-xl '>
+                a 16:9 image
+                <span class='close'></span>
+            </p>
+        </div>
+    </div>
+
+    <div class='ratio-square col-1-3 circle theme-dark text-center'>
+        <div class='ratio__content'>
+            <span></span>
+            <p class='mt-xxxl'>Circle!</p>
+        </div>
+    </div>
+    <div class='ratio-square col-1-3 circle theme-dark text-center'>
+        <div class='ratio__content'>
+            <span></span>
+            <p class='mt-xxxl'>Yeah!!</p>
+        </div>
+    </div>
+
+
+    <div class='primary-content'>
+
+    {% block layout %}
+        {{ macros.parse_blocks(content) }}
+    {% endblock %}
+    
+    </div>
+
+    {% block js -%}
+    {% for file in template.js %}
+    <script type="text/javascript" src="{{site.paths.js}}/{{file}}"></script>
+    {% endfor %}
+    {%- endblock %}
+    
+    <%= some_asp_func %>
+    
+    <script src="{{site.paths.js}}/site.js"></script>
+    <script src="//localhost:35729/livereload.js"></script>
+</body>
 </html>

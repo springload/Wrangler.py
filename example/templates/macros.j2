@@ -8,7 +8,7 @@
 {% macro parse_blocks(content) %}
 	{% for item in content %}
 		{% if item.type %}
-		{% include "blocks/" + item.type + ".j2" with context %}
+		{% include "blocks/" + item.type + ".j2" ignore missing with context %}
 		{% endif %}
 	{% endfor %}
 {% endmacro %}

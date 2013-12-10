@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Jinja2 extensions for use Markdown in templates.
 """
@@ -41,7 +39,6 @@ class MarkdownExtension(jinja2.ext.Extension):
             self.environment.extend(
                 markdowner=markdown.Markdown(**self.environment.mkdargs))
         else:
-            print 'here!!'
             self.environment.extend(
                 markdowner=markdown.Markdown())
 

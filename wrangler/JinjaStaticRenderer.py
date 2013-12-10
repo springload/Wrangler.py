@@ -3,11 +3,11 @@ import time
 import markdown as md
 
 from docutils.core import publish_parts
-from .Page import Page
-from .DirectoryWalker import DirectoryWalker
+from Page import Page
+from DirectoryWalker import DirectoryWalker
 from jinja2 import Environment, FileSystemLoader, meta, BaseLoader, TemplateNotFound, ChoiceLoader, Template, Markup
-from .SilentUndefined import SilentUndefined
-from .MarkdownExtension import MarkdownExtension
+from SilentUndefined import SilentUndefined
+from MarkdownExtension import MarkdownExtension
 
 
 def rst_filter(s):
@@ -59,10 +59,7 @@ class JinjaStaticRenderer():
         self.env.compile_templates(self.config['compiled_templates_file'])
 
         # This lets us have bespoke template pages in the input dir too. 
-        self.env.loader = ChoiceLoader([
-            FileSystemLoader(self.config['input_dir']),
-            FileSystemLoader(self.config['templates_dir'])
-        ])
+        self.env.loader = FileSystemLoader(self.config['templates_dir'])
 
     # def get_template_mtimes(self, config):
     #     """
@@ -106,9 +103,13 @@ class JinjaStaticRenderer():
         Store the reference list in a dictionary
         """
         if not template in self.template_trees:
-            ast = self.env.parse(self.env.loader.get_source(self.env, template))
-            self.template_trees[template] = list(meta.find_referenced_templates(ast))
-             
+
+            try: 
+                ast = self.env.parse(self.env.loader.get_source(self.env, template))
+                self.template_trees[template] = list(meta.find_referenced_templates(ast))
+            except:
+                self.template_trees[template] = False
+
         return self.template_trees[template]
 
     def get_global_vars(self):
@@ -165,7 +166,11 @@ class JinjaStaticRenderer():
         if template == 0:
             template = default_template
 
-        template_object = env.get_template(template)
+        try:
+            template_object = env.get_template(template)
+        except:
+            template_object = False
+
         referenced_templates = self.get_referenced_templates(template)
         template_modified_time = self.get_template_mtime(template)
 
@@ -179,7 +184,7 @@ class JinjaStaticRenderer():
 
         file_did_render = 0
 
-        if last_build_time == 0 or force_render == 1:
+        if template_object and last_build_time == 0 or force_render == 1:
             self.ensure_dir(new_directory)
             html = template_object.render(
                 content=page.get_page_content(),

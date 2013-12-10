@@ -35,16 +35,17 @@ class Page():
 
     def get_as_json(self, file_contents):
 
-        default = {"yk_data":{"title": None, "template": None, "description": None}}
+        page_vars = {"yk_data":{"title": None, "template": None, "description": None}}
         default_content = {"data":""}
 
         json_data = json.loads(file_contents)
-        wanted_keys = {"yk_data"}
-        raw_data = {k: json_data[k] if k in json_data else default for k in wanted_keys}
-        yk_data = raw_data["yk_data"]
-        page_vars = yk_data
+
+        if "yk_data" in json_data:
+            page_vars.update(json_data["yk_data"])
+
         # For backwards compatibility with old stuff
-        page_vars["extends"] = yk_data["template"]
+        page_vars["extends"] = page_vars["template"]
+        
         if "data" in json_data:
             self.file_contents = json_data["data"]
         else:

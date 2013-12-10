@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 import json
-from .JinjaStaticRenderer import JinjaStaticRenderer
+from JinjaStaticRenderer import JinjaStaticRenderer
 
 defaults = {
     "generator_config": {

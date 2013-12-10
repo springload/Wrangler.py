@@ -3,7 +3,7 @@
 		"title":"My awesome  page",
 		"description":"meta description tag, baby!",
 		"keywords": ["Some", "key", "words"],
-		"template": "test.j2"
+		"template": "base.j2"
 	},
 	"data":[
 		{

@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='wrangler',
-	version='0.1',
+	version='0.1.3',
 	description='A Jinja2 and JSON static site generator',
 	long_description=readme(),
 	url='http://github.com/springload/Wrangler.py',
@@ -17,7 +17,8 @@ setup(name='wrangler',
 		'markdown',
 		'jinja2',
 		'argparse',
-		'docutils'
+		'docutils',
+		'pyyaml'
 	],
 	scripts=['bin/wrangler'],
 	zip_safe=False)

@@ -1,12 +1,87 @@
-{
-	"yk_data": {
-		"title":"Test Page",
-		"template": "base.j2"
+{	
+	"yk_data":{
+		"title":"My awesome  page",
+		"description":"meta description tag, baby!",
+		"keywords": ["Some", "key", "words"],
+		"template": "test.j2"
 	},
-	"data": [
+	"data":[
+		{
+			"type":"intro",
+			"data":{
+				"markdown":"## This is the home page\n\nIt renders basic __markdown__ including [links](http://chicken.com) and **bold** and \n\n * lists\n* more lists\n* even more lists\n\n"
+			}
+		},
 		{
 			"type":"text",
-			"text":"Foo"
+			"data":{
+				"markdown":"Moby-Dick; or, The Whale is a novel by Herman Melville, first published in 1851.[2] It is considered to be one of the Great American Novels. The story tells the adventures of wandering sailor Ishmael and his voyage on the whaleship Pequod, commanded by Captain Ahab. Ishmael soon learns that Ahab has one purpose on this voyage: to seek out Moby Dick, a ferocious, enigmatic white sperm whale. In a previous encounter, the whale destroyed Ahab's boat and bit off his leg, which now drives Ahab to take revenge. In Moby-Dick, Melville employs stylized language, symbolism, and metaphor to explore numerous complex themes. Through the journey of the main characters, the concepts of class and social status, good and evil, and the existence of God are all examined, as the main characters speculate upon their personal beliefs and their places in the universe. The narrator's reflections, along with his descriptions of a sailor's life aboard a whaling ship, are woven into the narrative along with Shakespearean literary devices, such as stage directions, extended soliloquies, and asides. The book portrays destructive obsession and monomania, as well as the assumption of anthropomorphism. Moby-Dick has been classified as American Romanticism. It was first published by Richard Bentley in London on October 18, 1851, in an expurgated three-volume edition titled The Whale, and weeks later as a single volume, by New York City publisher Harper and Brothers as Moby-Dick; or, The Whale on November 14, 1851. The book initially received mixed reviews, but is now considered part of the Western canon,[3] and at the center of the canon of American novels. Moby-Dick begins with the line 'Call me Ishmael.' According to the American Book Review's rating in 2011, this is one of the most recognizable opening lines in Western literature.[4]" 
+			}
+		},
+		{
+			"type":"call-to-action",
+			"data":{
+				"phone":"true",
+				"web":"true",
+				"branch":"true"
+			}
+		},
+		{
+			"type":"group",
+			"data": [
+				{
+					"type": "call-to-action",
+					"data": {
+						"video":true,
+						"phone": true
+					}	
+				},
+				{
+					"type":"video",
+					"data":{
+						"source":"youtube",
+						"remote_id":"hcFLFpmc4Pg"
+					}
+				},
+				{
+					"type":"text",
+					"data":{
+						"markdown":"some text!"
+					}
+				}
+			]
+		},
+		{
+			"type":"video",
+			"data":{
+				"source":"youtube",
+				"remote_id":"hcFLFpmc4Pg"
+			}
+		},
+		{
+			"type":"text",
+			"data":{
+				"markdown":"Oh hey look someone wanted to put some more stuff below the video. Not a problem" 
+			}
+		},
+		{
+			"type":"calculator",
+			"data":{
+				"title":"Work out your house cost",
+				"type":"house-calculator",
+				"options": {
+					"open-by-default": false,
+					"saves-data": true,
+					"responsive": true
+				} 
+			}
+		},
+		{
+			"type":"legal",
+			"data":{
+				"markdown":"Terms and conditions and stuff"
+			}
 		}
-	]	
+
+	]
 }

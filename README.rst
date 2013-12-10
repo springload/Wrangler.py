@@ -2,7 +2,7 @@ Wrangler
 --------
 
 Install the wrangler with::
->>> pip install wrangler
+	>>> pip install wrangler
 
 
 Setup
@@ -10,19 +10,19 @@ Setup
 
 Expects this project structure::
 
-content/
-	some-file.json
-	some-other-file.json
+	content/
+		some-file.json
+		some-other-file.json
 
-templates/
-	base.j2
+	templates/
+		base.j2
 
-www/
-	[output-files-here]
-var/
+	www/
+		[output-files-here]
+	var/
 
-config.json
+	config.json
 
 
 Run it via::
->>> wrangler content www
+	>>> wrangler content www

@@ -11,6 +11,7 @@ templates/
 www/
 	[output-files-here]
 var/
+
 config.json
 
 

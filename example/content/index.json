@@ -1,0 +1,12 @@
+{
+	"yk_data": {
+		"title":"Test Page",
+		"template": "base.j2"
+	},
+	"data": [
+		{
+			"type":"text",
+			"text":"Foo"
+		}
+	]	
+}

@@ -1,0 +1,26 @@
+{   
+    "generator_config": {
+        "build_cache_file": "var/build.cache",
+        "default_template": "base.j2",
+        "templates_dir": "templates",
+        "compiled_templates_file": "var/jinja",
+        "compiled_templates_log": "var/jinja.log",
+        "output_file_extension": "html",
+        "output_dir": "www",
+        "input_dir": "content",
+        "extensions": ["json"],
+        "ignore": [".", "_"],
+        "site_vars":"env"
+    },
+    "env": {
+        "paths": {
+            "css": "assets/css",
+            "js": "assets/js",
+            "assets": "assets",
+            "images": "assets/images",
+            "webroot": "www",
+            "app": "app",
+            "content": "content"
+        }
+    }
+}

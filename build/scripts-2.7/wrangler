@@ -1,0 +1,5 @@
+#!/usr/bin/python
+from sys import argv
+import wrangler
+
+print wrangler.start(argv)

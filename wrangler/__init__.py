@@ -16,7 +16,8 @@ defaults = {
         "input_dir": "site",
         "extensions": ["json"],
         "ignore": [".", "_"],
-        "site_vars":"env"
+        "site_vars":"env",
+        "verbose": "false"
     },
     "env": {
         "paths": {
@@ -57,6 +58,8 @@ class App():
                             help='\033[34mType of files to output such as `html`\033[0m', default=defaults['generator_config']['output_file_extension'])
         parser.add_argument("-i", "--input_file_extension", action="store_true",
                             help='\033[34mType of files to match in input_dir, such as `json`\033[0m', default=defaults['generator_config']['extensions'])
+        parser.add_argument("-v", "--verbose", action="store_true",
+                            help='\033[34mPrint all the plumbing\033[0m')
 
         return parser.parse_args(args)
 

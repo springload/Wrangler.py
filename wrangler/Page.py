@@ -80,7 +80,8 @@ class Page():
         return self.meta
 
     def get_modified_time(self):
-        return os.path.getmtime(self.file_path)
+        mtime = os.path.getmtime(self.file_path)
+        return mtime
 
     def get_template(self):
         template = 0

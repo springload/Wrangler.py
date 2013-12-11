@@ -1,6 +1,8 @@
 import os
 import time
 import markdown as md
+import sys
+import traceback
 
 from docutils.core import publish_parts
 from Page import Page
@@ -53,13 +55,25 @@ class JinjaStaticRenderer():
 
         var_path=os.path.dirname(self.config['compiled_templates_file'])
 
+
+        if self.config["verbose"] == True:
+            print "Ensure directory exists: \033[34m%s\033[0m" % (var_path)
+            print "Ensure directory exists: \033[34m%s\033[0m" % (config['output_dir'])
+
         self.ensure_dir(var_path)
         self.ensure_dir(config['output_dir'])
 
-        self.env.compile_templates(self.config['compiled_templates_file'])
+        self.env.compile_templates(
+            self.config['compiled_templates_file'],
+            ignore_errors=False
+            )
+
+        if self.config["verbose"] == True:
+            print "Loading templates from: \033[34m%s\033[0m" % (config['templates_dir'])
+            print "Compile templates to .zip: \033[32m%s\033[0m" % (self.config['compiled_templates_file'])
 
         # This lets us have bespoke template pages in the input dir too. 
-        self.env.loader = FileSystemLoader(self.config['templates_dir'])
+        # self.env.loader = FileSystemLoader(self.config['templates_dir'])
 
     # def get_template_mtimes(self, config):
     #     """
@@ -107,8 +121,12 @@ class JinjaStaticRenderer():
             try: 
                 ast = self.env.parse(self.env.loader.get_source(self.env, template))
                 self.template_trees[template] = list(meta.find_referenced_templates(ast))
+                
             except:
-                self.template_trees[template] = False
+                self.template_trees[template] = list()
+
+            if self.config["verbose"] == True:
+                print "\033[34m%s\033[0m references templates \033[32m%s\033[0m" % (template, self.template_trees[template])
 
         return self.template_trees[template]
 
@@ -154,8 +172,6 @@ class JinjaStaticRenderer():
         new_file_path = page.get_output_path()
         new_directory = os.path.split(new_file_path)[0]
         
-
-
         # Force a render if the output file doesn't exist
         if not os.path.exists(new_file_path) or page.get_modified_time() >= last_build_time:
             force_render = 1
@@ -169,7 +185,12 @@ class JinjaStaticRenderer():
         try:
             template_object = env.get_template(template)
         except:
-            template_object = False
+            print "\033[1;91mCouldn't parse `%s`. Check the template for errors \033[0;37m" % (template)
+            
+            if self.config["verbose"] == True:
+                traceback.print_exc()
+            print "\033[0m"
+            return [new_file_path, 0, template]
 
         referenced_templates = self.get_referenced_templates(template)
         template_modified_time = self.get_template_mtime(template)
@@ -177,10 +198,16 @@ class JinjaStaticRenderer():
         if template_modified_time >= last_build_time:
             force_render = 1
 
+        ref_template_mtime = 0
         for t in referenced_templates:
             time = self.get_template_mtime(t)
             if time >= last_build_time:
                 force_render = 1
+                ref_template_mtime = time
+
+        if self.config["verbose"] == True:
+            print "\033[34m%s\033[37m last built at: %s, page mtime: %s, templ mtime: %s, ref-templates mtime: %s\033[0m" % (page.file_path, last_build_time, page.get_modified_time(), template_modified_time, ref_template_mtime)
+
 
         file_did_render = 0
 
@@ -207,6 +234,9 @@ class JinjaStaticRenderer():
 
         for item in items:
             print>>file, "%s, %s, %s" % (item[0], item[2], item[1])
+
+        if self.config["verbose"] == True:
+            print "Wrote log to: \033[32m%s\033[0m" % (self.config['compiled_templates_log'])
 
     def get_last_build_time(self):
         """

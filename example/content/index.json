@@ -1,5 +1,5 @@
 {	
-	"yk_data":{
+	"meta":{
 		"title":"My awesome  page",
 		"description":"meta description tag, baby!",
 		"keywords": ["Some", "key", "words"],
@@ -9,7 +9,7 @@
 		{
 			"type":"intro",
 			"data":{
-				"markdown":"## This is the home page\n\nIt renders basic __markdown__ including [links](http://chicken.com) and **bold** and \n\n * lists\n* more lists\n* even more lists\n\n"
+				"markdown":"## ō This is the home page\n\nIt renders basic __markdown__ including [links](http://chicken.com) and **bold** and \n\n * lists\n* more lists\n* even more lists\n\n"
 			}
 		},
 		{

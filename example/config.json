@@ -8,7 +8,7 @@
         "output_file_extension": "html",
         "output_dir": "www",
         "input_dir": "content",
-        "extensions": ["json"],
+        "data_format": "yaml",
         "ignore": [".", "_"],
         "site_vars":"env"
     },

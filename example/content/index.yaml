@@ -1,0 +1,24 @@
+meta:
+    title: Free Up
+    template: base.j2
+data:
+    -   type: intro
+        data:
+            Bank online and free yourself from transaction fees with Kiwibank’s great value online account.
+            Bank whenever you like from wherever you like with no monthly account or electronic transaction fees.
+    -   type: features
+        data: 
+            - Do most of your banking by internet, phone, EFTPOS, ATM, mobile or TXT
+            - No monthly account or electronic transaction fees (service fees may apply)
+            - You can get a Visa Debit Card, which works like a standard ATM/EFTPOS card but can be used online, over the phone, for mail order and overseas
+            - Great if you don’t need a cheque book
+            - Get your bank statements online or by email
+            - Smart services like Sweep and Alerts
+            - Set up and track your savings goals inside this account with Goal Tracker
+            - Use with heaps! our free personal finance software to help track your spending
+            - Find out more about Free Up’s rates and fees.
+    -   type: call-to-action
+        data:
+            phone: true
+            web: true
+            branch: true

@@ -14,10 +14,11 @@ defaults = {
         "output_file_extension": "html",
         "output_dir": "www",
         "input_dir": "site",
-        "extensions": ["json"],
+        "data_format": "json",
         "ignore": [".", "_"],
         "site_vars":"env",
-        "verbose": "false"
+        "verbose": "false",
+        "force": "false"
     },
     "env": {
         "paths": {
@@ -38,6 +39,7 @@ config = {
     'config_path':'config.json'
 }
 
+
 # Generic little app bootstrapper thingy
 class App():
     def __init__(self, config):
@@ -47,35 +49,43 @@ class App():
         d = '\033[32mProcess recursive directories of JSON files through Jinja2 templates. \033[0m'
         parser = argparse.ArgumentParser(description=d)
         parser.add_argument('input_dir',
-                            help='\033[34mInput directory such as `site/content`\033[0m', default=defaults['generator_config']['input_dir'])
+                            help='\033[34mInput directory such as `site/content`\033[0m')
         parser.add_argument('output_dir',
-                            help='\033[34mOutput directory such as `www`\033[0m', default=defaults['generator_config']['output_dir'])
-        parser.add_argument("-t", "--templates", action="store_true",
-                            help='\033[34mTemplate directory such as `templates`\033[0m', default=defaults['generator_config']['templates_dir'])
-        parser.add_argument("-c", "--config", action="store_true",
-                            help='\033[34mPath to `config.json`\033[0m', default=config['config_path'])
-        parser.add_argument("-o", "--output_file_extension", action="store_true",
-                            help='\033[34mType of files to output such as `html`\033[0m', default=defaults['generator_config']['output_file_extension'])
-        parser.add_argument("-i", "--input_file_extension", action="store_true",
-                            help='\033[34mType of files to match in input_dir, such as `json`\033[0m', default=defaults['generator_config']['extensions'])
+                            help='\033[34mOutput directory such as `www`\033[0m')
+        parser.add_argument("-t", "--templates",
+                            help='\033[34mTemplate directory such as `templates`\033[0m')
+        parser.add_argument("-c", "--config",
+                            help='\033[34mPath to `config.json`\033[0m')
+        parser.add_argument("-o", "--output_file_extension",
+                            help='\033[34mType of files to output such as `html`\033[0m')
+        parser.add_argument("-i", "--input_file_extension",
+                            help='\033[34mType of files to match in input_dir, such as `json`\033[0m')
         parser.add_argument("-v", "--verbose", action="store_true",
                             help='\033[34mPrint all the plumbing\033[0m')
+        parser.add_argument("-f", "--force", action="store_true",
+                            help='\033[34mSmash out all the templates regardless of mtime\033[0m')
 
         return parser.parse_args(args)
 
     def main(self, args=None):
         args = self.parse_args(args)
 
-        # Pull in extra config from user file
+        # If a config file is specified, load all config from there instead
+        if (args.__dict__["config"] != None):
+            config['config_path'] = args["config"]
+
         if os.path.exists( config['config_path'] ):
             userConfig = json.load( file(config['config_path']) )
-        else:
+            config.update( userConfig["generator_config"] )
+        else: 
             userConfig = defaults
 
+        # Apply settings from the config file (if present)
         config.update( userConfig["generator_config"] )
-        
-        self.config.update(args.__dict__)
-        
+
+        # Apply command line flags if set, ignore Nones.
+        config.update((k, v) for k, v in args.__dict__.iteritems() if v is not None)
+    
         # The site vars object is mapped to an item in the json object
         config["site_vars"] = userConfig[userConfig["generator_config"]["site_vars"]]
 

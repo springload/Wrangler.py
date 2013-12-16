@@ -155,6 +155,9 @@ class JinjaStaticRenderer():
         if last_build_time == 0 or config_modified_time >= last_build_time:
             force_render = 1
 
+        if self.config["force"] == True:
+            force_render = 1
+
         rendered_files = []
         
         for item in data_source:
@@ -219,7 +222,12 @@ class JinjaStaticRenderer():
                 template=page.get_page_vars()
                 )
             new_file = open(new_file_path, "w")
-            new_file.write(html)
+            try: 
+                new_file.write(html.encode('utf8'))
+            except:
+                print "\033[31mTrouble writing %s\033[0m" % (new_file_path)
+                traceback.print_exc()
+
             self.print_stdout(page.get_file_path(), new_file_path, template)
             file_did_render = 1
 
@@ -283,9 +291,9 @@ class JinjaStaticRenderer():
             "directory",
             {
                 'input_dir': self.config['input_dir'],
-                'valid_extensions': self.config['extensions'],
                 'ignore_files': self.config['ignore'],
-                'item_class': Page
+                'item_class': Page,
+                'data_format': self.config['data_format']
             }
         )
 

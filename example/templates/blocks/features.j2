@@ -1,0 +1,10 @@
+{#
+	Builds a page introduction 
+	- Usually shown below the headline
+#}
+<ul class='features'>
+
+	{% for object in item.data %}
+		<li>{{ object }}</li>
+	{% endfor %}
+</ul>

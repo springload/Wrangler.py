@@ -6,7 +6,7 @@ class DirectoryWalker():
         self.item_class = params['item_class']
         self.input_dir = params['input_dir']
         self.ignore_files = params['ignore_files']
-        self.valid_extensions = params['valid_extensions']
+        self.data_format = params['data_format']
 
     def fetch(self):
         items = []
@@ -17,7 +17,7 @@ class DirectoryWalker():
                 if any(file.startswith(x) for x in self.ignore_files):
                    continue;
                 # Process valid extensions
-                if any(file.endswith(x) for x in self.valid_extensions):
-                    item = self.item_class(file, self.input_dir, root)
+                if any(file.endswith(x) for x in self.data_format):
+                    item = self.item_class(file, self.input_dir, root, self.data_format)
                     items.append(item)
         return items

@@ -36,7 +36,7 @@ defaults = {
 
 # Default config just loads the YAML config file
 config = {
-    'config_path':'config.json'
+    'config_path':'wrangler.json'
 }
 
 
@@ -52,13 +52,13 @@ class App():
                             help='\033[34mInput directory such as `site/content`\033[0m')
         parser.add_argument('output_dir',
                             help='\033[34mOutput directory such as `www`\033[0m')
-        parser.add_argument("-t", "--templates",
+        parser.add_argument("-t", "--templates_dir",
                             help='\033[34mTemplate directory such as `templates`\033[0m')
         parser.add_argument("-c", "--config",
                             help='\033[34mPath to `config.json`\033[0m')
         parser.add_argument("-o", "--output_file_extension",
                             help='\033[34mType of files to output such as `html`\033[0m')
-        parser.add_argument("-i", "--input_file_extension",
+        parser.add_argument("-d", "--data_format",
                             help='\033[34mType of files to match in input_dir, such as `json`\033[0m')
         parser.add_argument("-v", "--verbose", action="store_true",
                             help='\033[34mPrint all the plumbing\033[0m')
@@ -72,7 +72,7 @@ class App():
 
         # If a config file is specified, load all config from there instead
         if (args.__dict__["config"] != None):
-            config['config_path'] = args["config"]
+            config['config_path'] = args.__dict__["config"]
 
         if os.path.exists( config['config_path'] ):
             userConfig = json.load( file(config['config_path']) )
@@ -85,7 +85,7 @@ class App():
 
         # Apply command line flags if set, ignore Nones.
         config.update((k, v) for k, v in args.__dict__.iteritems() if v is not None)
-    
+        
         # The site vars object is mapped to an item in the json object
         config["site_vars"] = userConfig[userConfig["generator_config"]["site_vars"]]
 

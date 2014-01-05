@@ -3,8 +3,8 @@
 	- Usually shown below the headline
 #}
 <ul class='features'>
-
-	{% for object in item.data %}
+	{{ item.data|markdown }}
+	{# {% for object in item.data %}
 		<li>{{ object }}</li>
-	{% endfor %}
+	{% endfor %} #}
 </ul>

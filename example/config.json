@@ -7,7 +7,7 @@
         "compiled_templates_log": "var/jinja.log",
         "output_file_extension": "html",
         "output_dir": "www",
-        "input_dir": "content",
+        "input_dir": "content/personal-banking",
         "data_format": "yaml",
         "ignore": [".", "_"],
         "site_vars":"env"

@@ -14,15 +14,15 @@ class Page():
         self.relative_path = os.path.join(root.replace(input_dir, "", 1), fileName)
         self.output_filename = ""
         self.output_path = ""
-        self.file_contents = self.read_file(self.file_path)
         self.mtime = self.get_modified_time()
         self.data_format = data_format
+        self.file_contents = self.read_file(self.file_path)
         self.data = self.get_data(self.file_contents)
         self.meta = self.get_metadata(self.data)
         self.content = self.get_content(self.data)
-        
 
     def read_file(self, file_path):
+        print file_path
         source_file = open(file_path, 'r')
         file_contents = ""
         try:
@@ -71,7 +71,9 @@ class Page():
         return yaml_data
 
     def get_metadata(self, data):
-        return data["meta"]
+        if "meta" in data:
+            return data["meta"]
+        return {title: "None"}
 
     def get_content(self, data):
         content = data.copy()
@@ -79,28 +81,29 @@ class Page():
         return content
 
     def get_page_content(self):
-        return self.content["data"]
-
-    def get_page_content_from_list(self):
-        content = self.file_contents
-        values = ','.join(str(v) for v in content)
-        return values
+        if "data" in self.content:
+            return self.content["data"]
+        return None
 
     def set_page_content(self, str):
         self.file_contents = str
 
     def get_page_vars(self):
+        self.meta["slug"] = self.output_filename
         return self.meta
 
     def get_modified_time(self):
         mtime = os.path.getmtime(self.file_path)
         return mtime
+        
 
     def get_template(self):
         template = 0
-        if self.meta != 0:
+
+        if self.meta:
             if self.meta['template']:
                 template = self.meta['template']
+        
         return template
 
 

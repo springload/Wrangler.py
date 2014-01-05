@@ -137,7 +137,7 @@ class JinjaStaticRenderer():
         try:
             os.stat(dir)
         except:
-            os.mkdir(dir)
+            os.makedirs(dir)
 
     def render(self, data_source):
         """
@@ -217,9 +217,9 @@ class JinjaStaticRenderer():
         if template_object and last_build_time == 0 or force_render == 1:
             self.ensure_dir(new_directory)
             html = template_object.render(
-                content=page.get_page_content(),
+                data=page.get_page_content(),
                 site=self.get_global_vars(),
-                template=page.get_page_vars()
+                meta=page.get_page_vars(),
                 )
             new_file = open(new_file_path, "w")
             try: 

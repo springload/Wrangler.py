@@ -28,6 +28,11 @@ def markdown_filter(value):
     out = marked.convert(output)
     return out
 
+def filter_template_dir(filename):
+    if filename.startswith("."):
+        return False;
+    return True;
+
 class JinjaStaticRenderer():
     """
     In theory this should probably sub-class a generic renderer
@@ -65,7 +70,8 @@ class JinjaStaticRenderer():
 
         self.env.compile_templates(
             self.config['compiled_templates_file'],
-            ignore_errors=False
+            ignore_errors=False,
+            filter_func=filter_template_dir 
             )
 
         if self.config["verbose"] == True:

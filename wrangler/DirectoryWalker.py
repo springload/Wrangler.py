@@ -1,6 +1,7 @@
 import os
 import subprocess
 import shelve 
+import sys 
 
 # Takes a directory and transforms the matching elements into the matching class.
 class DirectoryWalker():
@@ -14,11 +15,16 @@ class DirectoryWalker():
     def fetch(self):
         items = []
 
-        files = subprocess.check_output(["find", self.input_dir, "-name", "*.%s" % (self.data_format)], stderr=subprocess.STDOUT)
-        files = files.split("\n")
+        # Not supported in python 2.6 hmmm
+        # if sys.version_info > (2,7,0):
+            # files = subprocess.check_output(["find", self.input_dir, "-name", "*.%s" % (self.data_format)], stderr=subprocess.STDOUT)
+        # else:
+        p = subprocess.Popen(["find", self.input_dir, "-name", "*.%s" % (self.data_format)], stdout=subprocess.PIPE)
+
+        out, err = p.communicate()
+        files = out.split("\n")
 
         shelf = shelve.open("test_shelf.db") 
-
 
         for f in files: 
             if f != '':

@@ -18,7 +18,8 @@ defaults = {
         "ignore": [".", "_"],
         "site_vars":"env",
         "verbose": "false",
-        "force": "false"
+        "force": "false",
+        "nocache": "false"
     },
     "env": {
         "paths": {
@@ -64,6 +65,8 @@ class App():
                             help='\033[34mPrint all the plumbing\033[0m')
         parser.add_argument("-f", "--force", action="store_true",
                             help='\033[34mSmash out all the templates regardless of mtime\033[0m')
+        parser.add_argument("-n", "--nocache", action="store_true",
+                            help='\033[34mTurn off data persistence\033[0m')
 
         return parser.parse_args(args)
 

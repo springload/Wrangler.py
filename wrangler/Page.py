@@ -11,7 +11,7 @@ class Page():
     def __init__(self, fileName, input_dir, root, data_format):
         self.file_name, self.fileExtension = os.path.splitext(fileName)
         self.file_path = os.path.join(root, fileName)
-        self.relative_path = os.path.join(root.replace(input_dir, "", 1), fileName)
+        self.relative_path = self.file_path.replace(input_dir+"/", "")        
         self.output_filename = ""
         self.output_path = ""
         self.mtime = self.get_modified_time()
@@ -22,7 +22,6 @@ class Page():
         self.content = self.get_content(self.data)
 
     def read_file(self, file_path):
-        print file_path
         source_file = open(file_path, 'r')
         file_contents = ""
         try:

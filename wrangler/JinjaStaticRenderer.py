@@ -234,7 +234,7 @@ class JinjaStaticRenderer():
         return [new_file_path, file_did_render, template]
             
     def print_stdout(self, original_path, new_path, template):
-        print "\033[32mBuilding \033[0m\033[2m%s\033[0m > \033[34m%s \033[2m[%s]\033[0m" % (original_path, new_path, template)
+        print "\033[1;32mBuilding \033[0m\033[2m%s\033[0m > \033[34m%s \033[2m[%s]\033[0m" % (original_path, new_path, template)
 
     def update_log(self, items, last_modified_time):
         file = open(self.config['compiled_templates_log'], 'w')
@@ -293,7 +293,8 @@ class JinjaStaticRenderer():
                 'input_dir': self.config['input_dir'],
                 'ignore_files': self.config['ignore'],
                 'item_class': Page,
-                'data_format': self.config['data_format']
+                'data_format': self.config['data_format'],
+                'nocache': self.config['nocache']
             }
         )
 

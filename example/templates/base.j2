@@ -10,7 +10,7 @@
         content - the page's data hash
 
     #}
-    
+
     <title>{% block title %}{{template.title|default("Kiwibank")}}{% endblock %}</title>
     <meta name='description' content='{% block description%}{{template.description|default("Kiwibank description")}}{% endblock %}'>
     <meta name='keywords' content='{% block keywords%}{% endblock %}{% for word in template.keywords %}{{word}}{% if not loop.last %},{% endif %} {% endfor %}'>

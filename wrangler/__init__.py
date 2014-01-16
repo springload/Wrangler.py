@@ -2,7 +2,10 @@ import os
 import sys
 import argparse
 import json
-from JinjaStaticRenderer import JinjaStaticRenderer
+import importlib
+import JinjaStaticRenderer as renderer
+import DirectoryWalker as walker
+
 
 defaults = {
     "generator_config": {
@@ -19,7 +22,8 @@ defaults = {
         "site_vars":"env",
         "verbose": "false",
         "force": "false",
-        "nocache": "false"
+        "nocache": "false",
+        "item_class": "Page"
     },
     "env": {
         "paths": {
@@ -37,7 +41,7 @@ defaults = {
 
 # Default config just loads the YAML config file
 config = {
-    'config_path':'wrangler.json'
+    'config_path':'wrangler.json',
 }
 
 
@@ -67,8 +71,8 @@ class App():
                             help='\033[34mSmash out all the templates regardless of mtime\033[0m')
         parser.add_argument("-n", "--nocache", action="store_true",
                             help='\033[34mTurn off data persistence\033[0m')
-
         return parser.parse_args(args)
+
 
     def main(self, args=None):
         args = self.parse_args(args)
@@ -92,14 +96,43 @@ class App():
         # The site vars object is mapped to an item in the json object
         config["site_vars"] = userConfig[userConfig["generator_config"]["site_vars"]]
 
-        renderer = JinjaStaticRenderer(self.config)
-        renderer.go()
+        self.nodes = walker.DirectoryWalker(self.config)
+        self.renderer = renderer.JinjaStaticRenderer(self.config)
+
+        if "views" in config:
+            self.load_classes(config["views"])
+
+        self.renderer.render(self.nodes.fetch())
 
 
-# Do the thing! 
+    def load_classes(self, views): 
+
+        classfiles = [os.path.join(dirpath, f)
+            for dirpath, dirnames, files in os.walk(views)
+            for f in files if f.endswith('.py')]
+
+        path = list(sys.path)
+        sys.path.insert(0, views)
+
+        moduleNames = []
+
+        for f in classfiles:
+            moduleNames.append(os.path.basename(f.replace(".py", "")))
+
+        if len(moduleNames) > 0:
+            try:
+                map(__import__, moduleNames);
+            finally:
+                # restore the syspath
+                sys.path[:] = path 
+    
+
+wrangler = App(config)
+
+
+
 def start():
-    sys.exit(App(config).main())
+    sys.exit(wrangler.main())
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
     start()
-

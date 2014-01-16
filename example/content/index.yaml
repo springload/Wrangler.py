@@ -1,6 +1,7 @@
 meta:
     title: Free Up
     template: base.j2
+    view: LandingPage
 data:
     -   type: intro
         data:

@@ -134,11 +134,11 @@ class JinjaStaticRenderer():
         html=data[0]
 
         filename = item.get_output_path()
-        file_object = open(filename, "w")
         new_directory = os.path.split(filename)[0]
 
         try: 
             self.ensure_dir(new_directory)
+            file_object = open(filename, "w")
             file_object.write(html.encode('utf8'))
             self.print_stdout(item.get_file_path(), filename, item.get_template())
             item.on_save()

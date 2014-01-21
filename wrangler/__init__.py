@@ -102,7 +102,13 @@ class App():
         if "views" in config:
             self.load_classes(config["views"])
 
+        if hasattr(sys.modules["WranglerHooks"], "BeforeRender"):
+            sys.modules["WranglerHooks"].BeforeRender(self.config)
+        
         self.renderer.render(self.nodes.fetch())
+
+        if hasattr(sys.modules["WranglerHooks"], "AfterRender"):
+            sys.modules["WranglerHooks"].AfterRender(self.config)
 
 
     def load_classes(self, views): 
@@ -122,6 +128,7 @@ class App():
         if len(moduleNames) > 0:
             try:
                 map(__import__, moduleNames);
+               
             finally:
                 # restore the syspath
                 sys.path[:] = path 
@@ -130,8 +137,8 @@ class App():
 wrangler = App(config)
 
 
-
 def start():
+    
     sys.exit(wrangler.main())
 
 if __name__ == '__main__':

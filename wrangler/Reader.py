@@ -140,26 +140,28 @@ class Reader():
 
 
     def new_item(self, parser, shelf, filename):
-
         mtime = os.path.getmtime(filename)
         
         if (not shelf.has_key(filename)) or (shelf[filename].get_mtime() < mtime) or (self.nocache):
             
             # Check if custom class is set, otherwise make it a page... 
             page_data = parser.load(filename);
-            page_view = page_data["meta"]["view"]
 
-            if (page_view != None and "views" in self.config):
-                PageClass = self.load_class(page_view)
-            elif self.custom_default_module:
-                PageClass = self.load_class(self.default_class)
-            else:
-                PageClass = getattr(Core, self.default_class)
+            if page_data:
 
-            new_page = PageClass(page_data, self.config)
-            shelf[filename] = new_page
-            print "\033[1;35mCaching \033[0m\033[2m%s\033[0m" % (filename)
-            return new_page
+                page_view = page_data["meta"]["view"]
+
+                if (page_view != None and "views" in self.config):
+                    PageClass = self.load_class(page_view)
+                elif self.custom_default_module:
+                    PageClass = self.load_class(self.default_class)
+                else:
+                    PageClass = getattr(Core, self.default_class)
+
+                new_page = PageClass(page_data, self.config)
+                shelf[filename] = new_page
+                print "\033[1;35mCaching \033[0m\033[2m%s\033[0m" % (filename)
+                return new_page
         else:
             return shelf[filename]
 

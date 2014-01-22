@@ -116,7 +116,8 @@ class Wrangler():
         def set_output(node):
             if node.tag == 'file':
                 cargo = node.get_cargo()
-                cargo.set_output_path(self._writer.generate_output_path(cargo.relpath()))
+                if cargo:
+                    cargo.set_output_path(self._writer.generate_output_path(cargo.relpath()))
             else:
                 for child in node.children:
                     set_output(child)
@@ -128,16 +129,13 @@ class Wrangler():
         def render_item(node):
             if node.tag == 'file':
                 cargo = node.get_cargo()
-                cargo.set_output_path(self._writer.generate_output_path(cargo.relpath()))
-                # print node.parent.name
-                
-                cargo.set_parents(node.get_parents())
-                cargo.set_siblings(node.get_siblings())
-                cargo.set_unique_siblings(node.get_siblings())
-                cargo.set_children(node.get_child_pages())
-                cargo.set_parents_siblings(node.get_parents_siblings())
-
-                self._writer.save(self._renderer.render(cargo))
+                if cargo:
+                    cargo.set_parents(node.get_parents())
+                    cargo.set_siblings(node.get_siblings())
+                    cargo.set_unique_siblings(node.get_siblings())
+                    cargo.set_children(node.get_child_pages())
+                    cargo.set_parents_siblings(node.get_parents_siblings())
+                    self._writer.save(self._renderer.render(cargo))
             else:
                 for child in node.children:
                     render_item(child)

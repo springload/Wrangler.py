@@ -79,10 +79,12 @@ class Parser(object):
         mtime = os.path.getmtime(filepath)
         file_contents = self.read_file(file_path)
 
-        if file_extension == ".%s" % (self.accepts):
-            return self.parse(file_path, file_name, relative_path, file_contents, mtime)
-        else:
-            raise Exception("%s does not parse %s, expected .%s" % (self.__class__.__name__, file_extension, self.accepts))
+        if file_extension:
+
+            if file_extension == ".%s" % (self.accepts):
+                return self.parse(file_path, file_name, relative_path, file_contents, mtime)
+            else:
+                raise Exception("%s does not parse %s, expected .%s" % (self.__class__.__name__, file_extension, self.accepts))
 
 
 """
@@ -261,12 +263,12 @@ class Page(object):
         self.output_path_no_ext = path[2]
         
         self._ext = self.output_path.split(".")[1]
-
-        self.data["meta"]["segments"] = [segment for segment in self.relative_output_path.split("/")]
-
         tidy_url = self.relative_output_path.replace("index.%s" % (self._ext), "")
 
+        self.data["meta"]["segments"] = [segment for segment in self.relative_output_path.split("/")]
         self.data["meta"]["url"] = "/%s" % (tidy_url)
+        self.data["meta"]["path"] = "/%s/" % (os.path.dirname(self.relative_output_path))
+
 
     def get_tidy_url(self):
         return self.data["meta"]["url"]

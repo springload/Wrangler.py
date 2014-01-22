@@ -141,6 +141,20 @@ class Node(object):
 
         return child
 
+
+    def get_child_pages(self):
+        children = []
+
+        directories = [d for d in self.get_parent().get_children() if d.tag == 'dir']
+        
+        for node in directories:
+            index = node.get_child("index")
+
+            if index:
+                children.append(index)
+
+        return children
+
     def get_parents(self):
         parents = []
 
@@ -164,7 +178,25 @@ class Node(object):
         _get(self.parent)
 
         return parents
+        
+    def get_parents_siblings(self):
+        _parent_siblings = []
 
+        is_deep_enough = hasattr(self.get_parent(), "get_parent")
+
+        if is_deep_enough:
+            parent = self.get_parent().get_parent()
+
+        if parent:
+            directories = [d for d in parent.get_children() if d.tag == 'dir'] 
+
+            for node in directories:
+                index = node.get_child("index")
+
+                if index:
+                    _parent_siblings.append(index)
+
+        return _parent_siblings
 
 
 """
@@ -204,7 +236,7 @@ class Page(object):
         return self.data["meta"]["title"] if "title" in self.data["meta"] else None
 
     def get_short_title(self):
-        return self.data["meta"]["short_title"] if "short_title" in self.data["meta"] else None
+        return self.data["meta"]["alias"] if "alias" in self.data["meta"] else None
 
     def get_meta_description(self):
         return self.data["meta"]["description"] if "description" in self.data["meta"] else None
@@ -227,9 +259,17 @@ class Page(object):
         self.output_path = path[0]
         self.relative_output_path = path[1]
         self.output_path_no_ext = path[2]
-        self.data["meta"]["segments"] = [segment for segment in self.relative_output_path.split("/")]
-        self.data["meta"]["url"] = "/%s" % (self.relative_output_path)
+        
+        self._ext = self.output_path.split(".")[1]
 
+        self.data["meta"]["segments"] = [segment for segment in self.relative_output_path.split("/")]
+
+        tidy_url = self.relative_output_path.replace("index.%s" % (self._ext), "")
+
+        self.data["meta"]["url"] = "/%s" % (tidy_url)
+
+    def get_tidy_url(self):
+        return self.data["meta"]["url"]
 
     def get_modified_time(self):
         return self.data["meta"]["mtime"]
@@ -274,9 +314,11 @@ class Page(object):
 
                     _data.append({
                         "title": page.get_title(),
-                        "short_title": page.get_short_title(),
+                        "alias": page.get_short_title(),
                         "description": page.get_meta_description(),
-                        "url": "/%s" % (page.get_relative_output_path())
+                        "url": page.get_tidy_url(),
+                        "show_in_navigation": page.show_in_navigation(),
+                        "weight": page.get_weight()
                     })
         
         self.data["meta"][keyname] = _data
@@ -292,6 +334,9 @@ class Page(object):
 
     def set_children(self, nodes):
         self.map_related_nodes(nodes, "children")
+
+    def set_parents_siblings(self, nodes):
+        self.map_related_nodes(nodes, "parents_siblings")
 
 
 """

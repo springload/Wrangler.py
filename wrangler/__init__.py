@@ -134,7 +134,8 @@ class Wrangler():
                 cargo.set_parents(node.get_parents())
                 cargo.set_siblings(node.get_siblings())
                 cargo.set_unique_siblings(node.get_siblings())
-                cargo.set_children(node.get_children())
+                cargo.set_children(node.get_child_pages())
+                cargo.set_parents_siblings(node.get_parents_siblings())
 
                 self._writer.save(self._renderer.render(cargo))
             else:

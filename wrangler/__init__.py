@@ -109,33 +109,39 @@ class Wrangler():
         self._writer = Core.Writer(self.config["output_dir"], self.config["output_file_extension"], self._reporter)
         self._renderer = renderer.JinjaStaticRenderer(self.config, self._reporter, self._writer)
 
-        self.nodes = self._reader.fetch()
+        self.root_node = self._reader.fetch()
+
+        # Set output paths before trying to render anything.
+        # Two loops not so efficient... hmmm
+        def set_output(node):
+            if node.tag == 'file':
+                cargo = node.get_cargo()
+                cargo.set_output_path(self._writer.generate_output_path(cargo.relpath()))
+            else:
+                for child in node.children:
+                    set_output(child)
+
+        set_output(self.root_node)
 
 
-        # Recursive render thing
+        # Recursive render
         def render_item(node):
             if node.tag == 'file':
                 cargo = node.get_cargo()
                 cargo.set_output_path(self._writer.generate_output_path(cargo.relpath()))
                 # print node.parent.name
                 
-                print node.get_parents()
-
-                for n in node.get_siblings():
-                    cg = n.get_cargo();
-                    
-                    if cg:
-                        print cg.data["meta"]["title"]
-                # for child in node.parent.get_children():
-                #     if child.path != node.path:
-                #         print child.path
+                cargo.set_parents(node.get_parents())
+                cargo.set_siblings(node.get_siblings())
+                cargo.set_unique_siblings(node.get_siblings())
+                cargo.set_children(node.get_children())
 
                 self._writer.save(self._renderer.render(cargo))
             else:
                 for child in node.children:
                     render_item(child)
 
-        render_item(self.nodes)
+        render_item(self.root_node)
 
 
 

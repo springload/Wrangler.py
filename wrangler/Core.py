@@ -121,10 +121,39 @@ class Node(object):
     def get_siblings(self):
         siblings = []
         if self.parent != None:
-            siblings = [sibling for sibling in  self.get_parent().get_children() if sibling.path != self.path]
+            siblings = self.get_parent().get_children()
         return siblings
 
+    def get_unique_siblings(self):
+        siblings = []
+        if self.parent != None:
+            siblings = [sibling for sibling in  self.get_parent().get_children() if sibling.path != self.path]
+        return siblings 
+
+    def get_child(self, name):
+        child = None
+
+        for item in self.children:
+            if name == "index" and hasattr(item, "is_index"):
+                child = item
+            elif item.name == name:
+                child = item  
+
+        return child
+
     def get_parents(self):
+        parents = []
+
+        def _get(n):
+            if n != None:
+                parents.append(n.get_child("index"))
+                _get(n.parent)
+
+        _get(self.parent)
+
+        return parents
+
+    def get_parent_dirs(self):
         parents = []
 
         def _get(n):
@@ -135,7 +164,6 @@ class Node(object):
         _get(self.parent)
 
         return parents
-
 
 
 
@@ -175,8 +203,14 @@ class Page(object):
     def get_title(self):
         return self.data["meta"]["title"] if "title" in self.data["meta"] else None
 
-    def get_alias(self):
-        return self.data["meta"]["alias"] if "alias" in self.data["meta"] else None
+    def get_short_title(self):
+        return self.data["meta"]["short_title"] if "short_title" in self.data["meta"] else None
+
+    def get_meta_description(self):
+        return self.data["meta"]["description"] if "description" in self.data["meta"] else None
+
+    def get_meta_keywords(self):
+        return self.data["meta"]["keywords"] if "keywords" in self.data["meta"] else None
 
     def get_output_path(self):
         file_ext = self.get_file_ext()
@@ -193,15 +227,7 @@ class Page(object):
         self.output_path = path[0]
         self.relative_output_path = path[1]
         self.output_path_no_ext = path[2]
-        self.data["meta"]["segments"] = [segment for segment in self.relative_output_path.split("/") if not segment.endswith(".html")]
-        self.data["meta"]["full_segments"] = [segment for segment in self.relative_output_path.split("/")]
-
-        segments = []
-
-        for index, segment in enumerate(self.data["meta"]["segments"]):
-            segments.append(segment if index == 0 else segments[index-1] + "/" + segment)
-
-        self.data["meta"]["breadcrumb_segments"] = segments
+        self.data["meta"]["segments"] = [segment for segment in self.relative_output_path.split("/")]
 
 
     def get_modified_time(self):
@@ -236,14 +262,35 @@ class Page(object):
     def get_weight(self):
         return self.data["meta"]["weight"] if "weight" in self.data["meta"] else 0
 
-    def get_parent(self):
-        return self.parent
+    def map_related_nodes(self, nodes, keyname):
+        _data = []
+        
+        for node in nodes:
+            if node:
+                page = node.get_cargo()
 
-    def get_children(self):
-        return self.children
+                if page != None:
 
-    def get_siblings(self):
-        return self.get_parent.get_children()
+                    _data.append({
+                        "title": page.get_title(),
+                        "short_title": page.get_short_title(),
+                        "description": page.get_meta_description(),
+                        "url": "/%s" % (page.get_relative_output_path())
+                    })
+        
+        self.data["meta"][keyname] = _data
+
+    def set_siblings(self, nodes):
+        self.map_related_nodes(nodes, "siblings")
+
+    def set_unique_siblings(self, nodes):
+        self.map_related_nodes(nodes, "unique_siblings")  
+
+    def set_parents(self, nodes):
+        self.map_related_nodes(nodes, "parents")
+
+    def set_children(self, nodes):
+        self.map_related_nodes(nodes, "children")
 
 
 """

@@ -96,6 +96,10 @@ class Reader():
             return node
         else:
             node.tag = 'file'
+
+            if basename == "index.%s" % (self.data_format):
+                node.is_index = True
+                
             return node
 
 

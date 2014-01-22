@@ -6,7 +6,7 @@ import importlib
 import JinjaStaticRenderer as renderer
 import Reader as Reader
 import Core as Core
-
+import Extensions as Extensions
 
 class Wrangler():
 
@@ -125,6 +125,14 @@ class Wrangler():
         set_output(self.root_node)
 
 
+        if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "BeforeRender"):
+            hook = sys.modules["WranglerHooks"].BeforeRender(self.config, self._renderer)
+            hook.process(self.root_node)
+
+        self.config["site_vars"]["sitemap"] = Extensions.SiteMap().build(self.root_node)
+
+
+
         # Recursive render
         def render_item(node):
             if node.tag == 'file':
@@ -144,21 +152,11 @@ class Wrangler():
 
 
 
-        # for key, item in self.items.iteritems():
-        #     item.set_output_path(self._writer.generate_output_path(item.relpath()));
 
-        # if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "BeforeRender"):
-        #     hook = sys.modules["WranglerHooks"].BeforeRender(self.config, self._reader.get_files(), self._renderer)
-        #     hook.process(self.items)
 
-        # # print self.config["site_vars"]
-
-        # for key, item in self.items.iteritems():
-        #     self._writer.save(self._renderer.render(item))
-
-        # if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "AfterRender"):
-        #     hook = sys.modules["WranglerHooks"].AfterRender(self.config, self._reader.get_files(), self._renderer)
-        #     hook.process(self.items)
+        if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "AfterRender"):
+            hook = sys.modules["WranglerHooks"].AfterRender(self.config, self._renderer)
+            hook.process(self.root_node)
             
         self._reporter.set_last_build_time()
 

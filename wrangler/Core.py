@@ -103,6 +103,7 @@ class Node(object):
         self.cargo = cargo
         self.parent = parent
         self.children = list()
+        self.is_index = False
         return None
 
     def add_child(self, node):
@@ -136,7 +137,7 @@ class Node(object):
         child = None
 
         for item in self.children:
-            if name == "index" and hasattr(item, "is_index"):
+            if name == "index" and item.is_index:
                 child = item
             elif item.name == name:
                 child = item  
@@ -279,6 +280,12 @@ class Page(object):
     def get_file_path(self):
         return self.data["meta"]["filepath"]
 
+    def get_tags(self):
+        return self.data["meta"]["tags"] if "tags" in self.data["meta"] else None
+
+    def get_related(self):
+        return self.data["meta"]["related"] if "related" in self.data["meta"] else None
+
     def get_mtime(self):
         if "mtime" in self.data["meta"]:
             return self.data["meta"]["mtime"]
@@ -305,23 +312,25 @@ class Page(object):
     def get_weight(self):
         return self.data["meta"]["weight"] if "weight" in self.data["meta"] else 0
 
+
+    def get_properties(self):
+        return {
+                "title": self.get_title(),
+                "alias": self.get_short_title(),
+                "description": self.get_meta_description(),
+                "url": self.get_tidy_url(),
+                "show_in_navigation": self.show_in_navigation(),
+                "weight": self.get_weight()
+        }
+
     def map_related_nodes(self, nodes, keyname):
         _data = []
         
         for node in nodes:
             if node:
                 page = node.get_cargo()
-
                 if page != None:
-
-                    _data.append({
-                        "title": page.get_title(),
-                        "alias": page.get_short_title(),
-                        "description": page.get_meta_description(),
-                        "url": page.get_tidy_url(),
-                        "show_in_navigation": page.show_in_navigation(),
-                        "weight": page.get_weight()
-                    })
+                    _data.append(page.get_properties())
         
         self.data["meta"][keyname] = _data
 

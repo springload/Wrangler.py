@@ -50,10 +50,6 @@ class Reader():
                 return getattr(module, name)
 
         return Page
-
-
-    def get_files(self):
-        return self.files
     
 
     def init_cache(self):

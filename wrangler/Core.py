@@ -228,6 +228,7 @@ class Page(object):
         self.relative_output_path = path[1]
         self.output_path_no_ext = path[2]
         self.data["meta"]["segments"] = [segment for segment in self.relative_output_path.split("/")]
+        self.data["meta"]["url"] = "/%s" % (self.relative_output_path)
 
 
     def get_modified_time(self):

@@ -7,30 +7,8 @@ import JinjaStaticRenderer as renderer
 import Reader as Reader
 import Core as Core
 
-    
-def load_classes(views): 
-    classfiles = [os.path.join(dirpath, f)
-        for dirpath, dirnames, files in os.walk(views)
-        for f in files if f.endswith('.py')]
 
-    path = list(sys.path)
-    sys.path.insert(0, views)
-
-    moduleNames = []
-
-    for f in classfiles:
-        moduleNames.append(os.path.basename(f.replace(".py", "")))
-
-    if len(moduleNames) > 0:
-        try:
-            map(__import__, moduleNames);
-        finally:
-            # restore the syspath
-            sys.path[:] = path 
-
-
-# Generic little app bootstrapper thingy
-class App():
+class Wrangler():
 
     defaults = {
         "generator_config": {
@@ -44,14 +22,14 @@ class App():
             "input_dir": "site",
             "data_format": "json",
             "ignore": [".", "_"],
-            "site_vars":"env",
+            "site_vars":"site_vars",
             "verbose": "false",
             "force": "false",
             "nocache": "false",
             "item_class": "Page",
             "views": None
         },
-        "env": {
+        "site_vars": {
             "paths": {
                 "css": "assets/css",
                 "js": "assets/js",
@@ -124,32 +102,85 @@ class App():
         self.update_config(args)
 
         if "views" in self.config:
-            load_classes(self.config["views"])
+            self.load_classes(self.config["views"])
 
         self._reporter = Core.Reporter(self.config)
         self._reader = Reader.Reader(self.config)
         self._writer = Core.Writer(self.config["output_dir"], self.config["output_file_extension"], self._reporter)
         self._renderer = renderer.JinjaStaticRenderer(self.config, self._reporter, self._writer)
-        
-        self.items = self._reader.fetch();
-        
 
-        if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "BeforeRender"):
-            sys.modules["WranglerHooks"].BeforeRender(self.config, self.items, self._reader.get_files(), self._renderer)
+        self.nodes = self._reader.fetch()
 
-        for item in self.items:
-            item.set_output_path(self._writer.generate_output_path(item.relpath()));
-            self._writer.save(self._renderer.render(item))
 
-        if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "AfterRender"):
-            sys.modules["WranglerHooks"].AfterRender(self.config)
+        # Recursive render thing
+        def render_item(node):
+            if node.tag == 'file':
+                cargo = node.get_cargo()
+                cargo.set_output_path(self._writer.generate_output_path(cargo.relpath()))
+                # print node.parent.name
+                
+                print node.get_parents()
 
+                for n in node.get_siblings():
+                    cg = n.get_cargo();
+                    
+                    if cg:
+                        print cg.data["meta"]["title"]
+                # for child in node.parent.get_children():
+                #     if child.path != node.path:
+                #         print child.path
+
+                self._writer.save(self._renderer.render(cargo))
+            else:
+                for child in node.children:
+                    render_item(child)
+
+        render_item(self.nodes)
+
+
+
+        # for key, item in self.items.iteritems():
+        #     item.set_output_path(self._writer.generate_output_path(item.relpath()));
+
+        # if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "BeforeRender"):
+        #     hook = sys.modules["WranglerHooks"].BeforeRender(self.config, self._reader.get_files(), self._renderer)
+        #     hook.process(self.items)
+
+        # # print self.config["site_vars"]
+
+        # for key, item in self.items.iteritems():
+        #     self._writer.save(self._renderer.render(item))
+
+        # if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "AfterRender"):
+        #     hook = sys.modules["WranglerHooks"].AfterRender(self.config, self._reader.get_files(), self._renderer)
+        #     hook.process(self.items)
+            
         self._reporter.set_last_build_time()
 
-wrangler = App()
+
+    def load_classes(self, views): 
+        classfiles = [os.path.join(dirpath, f)
+            for dirpath, dirnames, files in os.walk(views)
+            for f in files if f.endswith('.py')]
+
+        path = list(sys.path)
+        sys.path.insert(0, views)
+
+        moduleNames = []
+
+        for f in classfiles:
+            moduleNames.append(os.path.basename(f.replace(".py", "")))
+
+        if len(moduleNames) > 0:
+            try:
+                map(__import__, moduleNames);
+            finally:
+                # restore the syspath
+                sys.path[:] = path 
+
 
 def start():
-    sys.exit(wrangler.main())
+    sys.exit(Wrangler().main())
 
 if __name__ == '__main__':
     start()

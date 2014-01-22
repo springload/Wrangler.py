@@ -3,7 +3,18 @@ import time
 import re
 import traceback
 import utilities as util
+import itertools
+from copy import deepcopy
 
+"""
+---------------------------------------------------------------------------------------------------
+Parser
+---------------------------------------------------------------------------------------------------
+
+Normalises data in a file and returns dicts ready to construct
+page objects with
+
+"""
 class Parser(object):
 
     defaults = {
@@ -11,16 +22,14 @@ class Parser(object):
             "title": None,
             "template": None,
             "description": None,
-            "view": None
+            "view": None,
+            "output_file_extension": None
         }
     }
 
     def __init__(self, input_dir, root):
        self.input_dir = input_dir
        self.project_root = root
-
-    def get_data(self):
-        return self.data
 
     def interpret(self, file_contents):
         return file_contents
@@ -45,12 +54,12 @@ class Parser(object):
     def parse(self, filepath, file_name, relative_path,  file_contents, mtime):
         page_data = {"data":[]}
         contents = self.attempt(file_contents, filepath)
-        page_data.update(self.defaults)
+        _defaults = deepcopy(self.defaults)
+        page_data.update(_defaults)
         
         if contents != None: 
             if "meta" in contents:
                 page_data["meta"].update(contents["meta"])
-            # print contents["data"]
             if "data" in contents:
                 page_data["data"] = contents["data"]
 
@@ -60,6 +69,7 @@ class Parser(object):
             "relative_path": relative_path,
             "mtime": mtime
         })
+
         return page_data
 
     def load(self, filepath):
@@ -75,18 +85,85 @@ class Parser(object):
             raise Exception("%s does not parse %s, expected .%s" % (self.__class__.__name__, file_extension, self.accepts))
 
 
-# Every file matching the pattern gets thrown into a Page object
+"""
+---------------------------------------------------------------------------------------------------
+Node
+---------------------------------------------------------------------------------------------------
+
+Tree object that makes it easier to keep track of all the pages and how they relate to each other.
+
+"""
+
+class Node(object):
+    def __init__(self, name, path, parent=None, cargo=None):
+        self.name = name
+        self.path = path
+        self.cargo = cargo
+        self.parent = parent
+        self.children = list()
+        return None
+
+    def add_child(self, node):
+        self.children.append(node)
+
+    def add_cargo(self, cargo=None):
+        self.cargo = cargo
+
+    def get_cargo(self):
+        return self.cargo
+
+    def get_children(self):
+        return self.children
+
+    def get_parent(self):
+        return self.parent
+
+    def get_siblings(self):
+        siblings = []
+        if self.parent != None:
+            siblings = [sibling for sibling in  self.get_parent().get_children() if sibling.path != self.path]
+        return siblings
+
+    def get_parents(self):
+        parents = []
+
+        def _get(n):
+            if n != None:
+                parents.append(n)
+                _get(n.parent)
+
+        _get(self.parent)
+
+        return parents
+
+
+
+
+"""
+---------------------------------------------------------------------------------------------------
+Page
+---------------------------------------------------------------------------------------------------
+
+Provides methods for dealing with data loaded from a filesystem
+
+"""
 class Page(object):
+    new_id = itertools.count().next
     def __init__(self, data, config):
+        self.id = Page.new_id()
         self.data = data
         self.config = config
         self.set_name(self.data["meta"]["filepath"])
+        self.data["meta"]["id"] = self.id
 
     def get_content(self):
         return self.data["data"]
 
     def get_metadata(self):
         return self.data["meta"]
+
+    def get_file_ext(self):
+        return self.data["meta"]["output_file_extension"] if "output_file_extension" in self.data["meta"] else None
     
     def set_name(self, filepath):
         self.name = os.path.splitext(filepath)[0]
@@ -95,11 +172,37 @@ class Page(object):
     def get_name(self):
         return self.name
 
+    def get_title(self):
+        return self.data["meta"]["title"] if "title" in self.data["meta"] else None
+
+    def get_alias(self):
+        return self.data["meta"]["alias"] if "alias" in self.data["meta"] else None
+
     def get_output_path(self):
-        return self.output_path
+        file_ext = self.get_file_ext()
+        
+        if file_ext == None:
+            return self.output_path
+        else:
+            return self.output_path_no_ext + file_ext
+
+    def get_relative_output_path(self):
+        return self.relative_output_path
 
     def set_output_path(self, path):
-        self.output_path = path
+        self.output_path = path[0]
+        self.relative_output_path = path[1]
+        self.output_path_no_ext = path[2]
+        self.data["meta"]["segments"] = [segment for segment in self.relative_output_path.split("/") if not segment.endswith(".html")]
+        self.data["meta"]["full_segments"] = [segment for segment in self.relative_output_path.split("/")]
+
+        segments = []
+
+        for index, segment in enumerate(self.data["meta"]["segments"]):
+            segments.append(segment if index == 0 else segments[index-1] + "/" + segment)
+
+        self.data["meta"]["breadcrumb_segments"] = segments
+
 
     def get_modified_time(self):
         return self.data["meta"]["mtime"]
@@ -127,7 +230,30 @@ class Page(object):
     def on_save(self):
         return False;
 
+    def show_in_navigation(self):
+        return False if "hide_from_nav" in self.data["meta"] else True
 
+    def get_weight(self):
+        return self.data["meta"]["weight"] if "weight" in self.data["meta"] else 0
+
+    def get_parent(self):
+        return self.parent
+
+    def get_children(self):
+        return self.children
+
+    def get_siblings(self):
+        return self.get_parent.get_children()
+
+
+"""
+---------------------------------------------------------------------------------------------------
+Renderer
+---------------------------------------------------------------------------------------------------
+
+Generates templated content to pass to the writer
+
+"""
 class Renderer(object):
     def __init__(self, config, reporter, writer):
         self.config = config
@@ -139,7 +265,14 @@ class Renderer(object):
     def render(self, item):
         return str(item)
 
+"""
+---------------------------------------------------------------------------------------------------
+Writer
+---------------------------------------------------------------------------------------------------
 
+Saves rendered items to the filesystem
+
+"""
 class Writer(object):
     def __init__(self, output_path, output_file_ext, reporter):
         self.output_path = output_path
@@ -150,8 +283,10 @@ class Writer(object):
         return None
 
     def generate_output_path(self, filename):
-        path = os.path.join(self.output_path, filename + os.extsep +  self.output_file_ext)
-        return path
+        relative_output_path = filename + os.extsep +  self.output_file_ext
+        path = os.path.join(self.output_path, relative_output_path)
+        path_no_ext = os.path.join(self.output_path, filename + os.extsep)
+        return path, relative_output_path, path_no_ext
 
     def save(self, data):
 
@@ -180,6 +315,15 @@ class Writer(object):
             return True
 
 
+
+
+"""
+---------------------------------------------------------------------------------------------------
+Reporter
+---------------------------------------------------------------------------------------------------
+Shares our findings with the rest of the class
+
+"""
 class Reporter(object):
     def __init__(self, config):
         self.config = config

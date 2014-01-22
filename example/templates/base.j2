@@ -61,6 +61,16 @@
     {% endblock %}
     
     </div>
+    
+    <div class='sitemap'>
+        
+        {% for key, val in site.sitemap.iteritems() %}
+            {{key}}: {{val}}
+        {% endfor %}
+
+    </div>
+
+
 
     {% block js -%}
     {% for file in template.js %}

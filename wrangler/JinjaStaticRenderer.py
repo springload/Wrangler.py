@@ -101,9 +101,11 @@ class JinjaStaticRenderer(Core.Renderer):
     def render(self, item):
         template = self.load_template(item.get_template())
 
+
         if (self.should_render_item(item, template)):
             self.reporter.verbose("\033[34m%s\033[37m last built at: %s\033[0m" % (item.get_file_path(), item.get_modified_time()))
-            return (template.render(data=item.get_content(), meta=item.get_metadata()), item)
+            print "is rendering...."
+            return (template.render(data=item.get_content(), meta=item.get_metadata(), site=self.config["site_vars"]), item)
 
         return (False, item)
 

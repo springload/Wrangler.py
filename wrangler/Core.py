@@ -144,7 +144,6 @@ class Node(object):
 
         return child
 
-
     def get_child_pages(self):
         children = []
 
@@ -181,7 +180,8 @@ class Node(object):
         _get(self.parent)
 
         return parents
-        
+    
+
     def get_parents_siblings(self):
         _parent_siblings = []
 
@@ -312,6 +312,8 @@ class Page(object):
     def get_weight(self):
         return self.data["meta"]["weight"] if "weight" in self.data["meta"] else 0
 
+    def get_thumbnail(self):
+        return self.data["meta"]["thumbnail"] if "thumbnail" in self.data["meta"] else None
 
     def get_properties(self):
         return {
@@ -320,7 +322,8 @@ class Page(object):
                 "description": self.get_meta_description(),
                 "url": self.get_tidy_url(),
                 "show_in_navigation": self.show_in_navigation(),
-                "weight": self.get_weight()
+                "weight": self.get_weight(),
+                "thumbnail": self.get_thumbnail()
         }
 
     def map_related_nodes(self, nodes, keyname):
@@ -337,9 +340,6 @@ class Page(object):
     def set_siblings(self, nodes):
         self.map_related_nodes(nodes, "siblings")
 
-    def set_unique_siblings(self, nodes):
-        self.map_related_nodes(nodes, "unique_siblings")  
-
     def set_parents(self, nodes):
         self.map_related_nodes(nodes, "parents")
 
@@ -348,6 +348,16 @@ class Page(object):
 
     def set_parents_siblings(self, nodes):
         self.map_related_nodes(nodes, "parents_siblings")
+
+    def set_related_nodes(self, nodes):
+        self.map_related_nodes(nodes, "related_nodes")
+
+    def cleanup(self):
+        self.data["meta"]["siblings"] = None
+        self.data["meta"]["parents"] = None
+        self.data["meta"]["parents_siblings"] = None
+        self.data["meta"]["children"] = None
+        self.data["meta"]["related_nodes"] = None
 
 
 """
@@ -435,7 +445,7 @@ class Reporter(object):
         return None
 
     def print_stdout(self, original_path, new_path, template):
-        print "\033[1;32mBuilding \033[0m\033[2m%s\033[0m > \033[34m%s \033[2m[%s]\033[0m" % (original_path, new_path, template)
+        self.verbose("\033[1;32mBuilding \033[0m\033[2m%s\033[0m > \033[34m%s \033[2m[%s]\033[0m" % (original_path, new_path, template))
 
 
     def update_log(self, items, last_modified_time):
@@ -483,6 +493,22 @@ class Reporter(object):
 
         with open(self.config['build_cache_file'], "w") as buildFile:
             buildFile.write("%s" % (update_time))
+
+    def pretty(self, colour, message):
+        colours = {
+            "green": "\033[32m",
+            "red": "\033[31m",
+            "blue": "\033[34m",
+            "basic": "\033[0m"
+        }
+        
+        return "%s%s%s" % (colours[colour], message, colours["basic"]) 
+
+    def log(self, message, status=None):
+        msg = message
+        if status:
+            msg = self.pretty(status, message)
+        print msg
 
     def verbose(self, message):
         if self.config["verbose"] == True:

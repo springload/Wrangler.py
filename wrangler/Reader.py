@@ -6,8 +6,22 @@ import Core
 import Parsers
 
 
+class NodeGraph():
+    def __init__(self):
+        self._nodes = {}
+        self._root = None
 
+    def add(self, item):
+        self._nodes[item.path] = item
 
+    def root(self, item):
+        self._root = item
+
+    def tree(self):
+        return self._root
+
+    def all(self):
+        return self._nodes
 
 
 # Takes a directory and transforms the matching elements into Page instances.
@@ -78,7 +92,6 @@ class Reader():
 
         # Gather some more information on this path here
         # and write it to attributes
-        # ...
         if os.path.isdir(path):
             # Recurse
             node.tag = 'dir'
@@ -100,15 +113,13 @@ class Reader():
 
 
     def fetch(self):
-        # p = subprocess.Popen(["find", self.input_dir, "-name", "*.%s" % (self.data_format)], stdout=subprocess.PIPE)
-        # out, err = p.communicate()
-        # files = out.split("\n")
-        # return self.process(files, self.data_format)
-
         shelf = self.init_cache()
         parser = self.load_parser_by_format(self.data_format, self.input_dir, "")
 
         root_node = self.dir_as_tree(self.input_dir)        
+
+        graph = NodeGraph()
+        graph.root(root_node)
 
         # Recursively add the page objects to the nodes...
         def process(node):
@@ -118,10 +129,11 @@ class Reader():
             for item in node.children:
                 process(item)
 
-        process(root_node)
-        self.save_cache(shelf)
+            graph.add(node)
 
-        return root_node
+        process(graph.tree())
+        self.save_cache(shelf)
+        return graph
 
 
     def load_parser_by_format(self, data_format, input_dir, root):
@@ -137,7 +149,6 @@ class Reader():
 
     def new_item(self, parser, shelf, filename):
         mtime = os.path.getmtime(filename)
-        
         if (not shelf.has_key(filename)) or (shelf[filename].get_mtime() < mtime) or (self.nocache):
             
             # Check if custom class is set, otherwise make it a page... 
@@ -160,6 +171,9 @@ class Reader():
                 return new_page
         else:
             return shelf[filename]
+
+
+    # TODO: Check file not exists
 
     # def process(self, files, data_format):
 

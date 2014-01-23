@@ -75,7 +75,6 @@ class JinjaStaticRenderer(Core.Renderer):
         """
         if not template in self.template_modified_times:
             self.template_modified_times[template] = os.path.getmtime("%s/%s" % (self.config['templates_dir'], template) )
-
         return self.template_modified_times[template]
 
 
@@ -84,12 +83,11 @@ class JinjaStaticRenderer(Core.Renderer):
         Request the template's Abstract Syntax Tree so we can find other template references.
         Store the reference list in a dictionary
         """
-        if not template in self.template_trees:
 
+        if not template in self.template_trees:
             try: 
                 ast = self.env.parse(self.env.loader.get_source(self.env, template))
                 self.template_trees[template] = list(meta.find_referenced_templates(ast))
-                
             except:
                 self.template_trees[template] = list()
 
@@ -99,11 +97,11 @@ class JinjaStaticRenderer(Core.Renderer):
 
 
     def render(self, item):
-        template = self.load_template(item.get_template())
+        template_name = item.get_template()
+        template = self.load_template(template_name)
 
-
-        if (self.should_render_item(item, template)):
-            self.reporter.verbose("\033[34m%s\033[37m last built at: %s\033[0m" % (item.get_file_path(), item.get_modified_time()))
+        if template and (self.should_render_item(item, template_name)):
+            # self.reporter.verbose("\033[37m%s last built at: %s\033[0m" % (item.get_file_path(), item.get_modified_time()))
             return (template.render(data=item.get_content(), meta=item.get_metadata(), site=self.config["site_vars"]), item)
 
         return (False, item)
@@ -124,7 +122,7 @@ class JinjaStaticRenderer(Core.Renderer):
             return template_object
 
 
-    def should_render_item(self, item, template):
+    def should_render_item(self, item, template_name):
         force_render = 0
         last_build_time = self.reporter.get_last_build_time()
         output_path = item.get_output_path()
@@ -148,15 +146,16 @@ class JinjaStaticRenderer(Core.Renderer):
 
         template_modified_time = 0
 
-        if template:
+        if template_name:
 
-            referenced_templates = self.get_referenced_templates(template)
-            template_modified_time = self.get_template_mtime(item.get_template())
-
+            referenced_templates = self.get_referenced_templates(template_name)
+            template_modified_time = self.get_template_mtime(template_name)
+            
             if template_modified_time >= last_build_time:
                 return True
 
             ref_template_mtime = 0
+
             for t in referenced_templates:
                 time = self.get_template_mtime(t)
                 if time >= last_build_time:

@@ -109,7 +109,10 @@ class Wrangler():
         self._writer = Core.Writer(self.config["output_dir"], self.config["output_file_extension"], self._reporter)
         self._renderer = renderer.JinjaStaticRenderer(self.config, self._reporter, self._writer)
 
-        self.root_node = self._reader.fetch()
+        self._reporter.log("Digesting \"%s\" files from \"%s\"" % (self.config["data_format"], self.config["input_dir"]), "blue")
+        self.graph = self._reader.fetch()
+
+
 
         # Set output paths before trying to render anything.
         # Two loops not so efficient... hmmm
@@ -122,44 +125,56 @@ class Wrangler():
                 for child in node.children:
                     set_output(child)
 
-        set_output(self.root_node)
+        set_output(self.graph.tree())
 
 
         if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "BeforeRender"):
             hook = sys.modules["WranglerHooks"].BeforeRender(self.config, self._renderer)
-            hook.process(self.root_node)
+            hook.process(self.graph)
 
-        self.config["site_vars"]["sitemap"] = Extensions.SiteMap().build(self.root_node)
+        self.config["site_vars"]["sitemap"] = Extensions.SiteMap().build(self.graph.tree())
 
+        rendered = 0
 
-
-        # Recursive render
-        def render_item(node):
+        for key, node in self.graph.all().items():
             if node.tag == 'file':
+                # Leaky boat.
                 cargo = node.get_cargo()
                 if cargo:
                     cargo.set_parents(node.get_parents())
-                    cargo.set_siblings(node.get_siblings())
-                    cargo.set_unique_siblings(node.get_siblings())
                     cargo.set_children(node.get_child_pages())
+                    cargo.set_siblings(node.get_siblings())
                     cargo.set_parents_siblings(node.get_parents_siblings())
-                    self._writer.save(self._renderer.render(cargo))
-            else:
-                for child in node.children:
-                    render_item(child)
+                    
+                    _rel = cargo.get_related()
 
-        render_item(self.root_node)
+                    if _rel != None:
+                        arr = self.graph.all()
+                        related = []
+                        for item in _rel:
+                            _item = arr.get(item)
+                            if _item:
+                                related.append(_item)
+                        
+                        cargo.set_related_nodes(related)
 
 
+                    if self._writer.save(self._renderer.render(cargo)):
+                        rendered += 1
 
-
+                cargo.cleanup()
+                del cargo
+    
 
         if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "AfterRender"):
             hook = sys.modules["WranglerHooks"].AfterRender(self.config, self._renderer)
-            hook.process(self.root_node)
-            
-        self._reporter.set_last_build_time()
-
+            hook.process(self.graph)
+        
+        if rendered > 0:
+            self._reporter.log("Built %s of %s pages in \"%s\" directory " % (rendered, len(self.graph.all()) ,self.config["output_dir"]), "green")
+            self._reporter.set_last_build_time()
+        else:
+             self._reporter.log("Hmm... nothing's changed in \"%s\" or \"%s\" since last time.\nIf you've removed pages, or included a template dynamically, try --force" % (self.config["input_dir"], self.config["templates_dir"]), "red")
 
     def load_classes(self, views): 
         classfiles = [os.path.join(dirpath, f)

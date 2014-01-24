@@ -307,7 +307,7 @@ class Page(object):
         return False;
 
     def show_in_navigation(self):
-        return False if "hide_from_nav" in self.data["meta"] else True
+        return False if "hide_from_nav" in self.data["meta"] and self.data["meta"]["hide_from_nav"] == "True" else True
 
     def get_weight(self):
         return self.data["meta"]["weight"] if "weight" in self.data["meta"] else 0

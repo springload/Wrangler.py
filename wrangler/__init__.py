@@ -7,6 +7,7 @@ import JinjaStaticRenderer as renderer
 import Reader as Reader
 import Core as Core
 import Extensions as Extensions
+import inspect
 
 class Wrangler():
 
@@ -27,7 +28,24 @@ class Wrangler():
             "force": "false",
             "nocache": "false",
             "item_class": "Page",
-            "views": None
+            "views": None,
+            "extensions": {
+                "SiteMap": {
+                    "options": {
+                        "webroot":"/"
+                    }
+                },
+                "CacheBuster": {
+                    "options": {}
+                },
+                "FileInfo": {
+                    "options": {
+                        "directory": "www/assets",
+                        "filetypes": ["css", "pdf"],
+                        "webroot": "www"
+                    }
+                }
+            }
         },
         "site_vars": {
             "paths": {
@@ -79,14 +97,17 @@ class Wrangler():
         if (args.__dict__["config"] != None):
             self.config['config_path'] = args.__dict__["config"]
 
+
+        self.config.update( self.defaults["generator_config"] )
+
         if os.path.exists( self.config['config_path'] ):
             userConfig = json.load( file(self.config['config_path']) )
             self.config.update( userConfig["generator_config"] )
-        else: 
-            userConfig = self.defaults
+        # else: 
+            # userConfig = self.defaults
 
         # Apply settings from the config file (if present)
-        self.config.update( userConfig["generator_config"] )
+        # self.config.update( userConfig["generator_config"] )
 
         # Apply command line flags if set, ignore Nones.
         self.config.update((k, v) for k, v in args.__dict__.iteritems() if v is not None)
@@ -132,7 +153,18 @@ class Wrangler():
             hook = sys.modules["WranglerHooks"].BeforeRender(self.config, self._renderer)
             hook.process(self.graph)
 
-        self.config["site_vars"]["sitemap"] = Extensions.SiteMap().build(self.graph.tree())
+        extension_classes = inspect.getmembers(sys.modules["wrangler.Extensions"], inspect.isclass)
+        if extension_classes:
+            for extension_name, extension_config in self.config["extensions"].items():
+                try:
+                    ext = [(name, obj) for (name, obj) in extension_classes if name == extension_name]
+                    if ext[0]:
+                        extension = ext[0][1](extension_config, self.graph)
+                        self._reporter.verbose("Running extension %s > site.%s" % (ext[0][0], ext[0][0].lower()))
+                        self.config["site_vars"][extension_name.lower()] = extension.run()
+                except:
+                    self._reporter.log("Couldn't load extension %s" % (extension_name), "red") 
+    
 
         rendered = 0
 
@@ -158,12 +190,11 @@ class Wrangler():
                         
                         cargo.set_related_nodes(related)
 
-
                     if self._writer.save(self._renderer.render(cargo)):
                         rendered += 1
 
-                cargo.cleanup()
-                del cargo
+                    cargo.cleanup()
+                    del cargo
     
 
         if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "AfterRender"):

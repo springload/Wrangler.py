@@ -89,6 +89,7 @@ class Reader():
 
         basename = os.path.basename(path)
         node = Core.Node(basename, path, parent)
+        self.graph.add(node)
 
         # Gather some more information on this path here
         # and write it to attributes
@@ -116,24 +117,20 @@ class Reader():
         shelf = self.init_cache()
         parser = self.load_parser_by_format(self.data_format, self.input_dir, "")
 
+        self.graph = NodeGraph()
+
         root_node = self.dir_as_tree(self.input_dir)        
 
-        graph = NodeGraph()
-        graph.root(root_node)
-
-        # Recursively add the page objects to the nodes...
-        def process(node):
+        
+        self.graph.root(root_node)
+        
+        for key, node in self.graph.all().items():
             if node.tag == "file":
+
                 node.add_cargo(self.new_item(parser, shelf, node.path))
-
-            for item in node.children:
-                process(item)
-
-            graph.add(node)
-
-        process(graph.tree())
+        
         self.save_cache(shelf)
-        return graph
+        return self.graph
 
 
     def load_parser_by_format(self, data_format, input_dir, root):
@@ -171,34 +168,3 @@ class Reader():
                 return new_page
         else:
             return shelf[filename]
-
-
-    # TODO: Check file not exists
-
-    # def process(self, files, data_format):
-
-    #     parser = self.load_parser_by_format(self.data_format, self.input_dir, "")
-    #     items = {}
-
-    #     # if (self.config["verbose"]):
-    #     #     print "Target directory contains %s items" % (len(files)) 
-
-    #     # for f in files:
-    #     #     try: 
-    #     #         if f != '':
-
-    #     #             file_mtime = os.path.getmtime(f);
-
-    #     #             # If the key doesn't exist on the shelf, or the mtime is different, re-cache the object
-    #     #             if (not shelf.has_key(f)) or (shelf[f].get_mtime() < file_mtime) or (self.nocache):
-    #     #                 shelf[f] = self.new_item(parser, f)
-    #     #                 print "\033[1;35mCaching \033[0m\033[2m%s\033[0m" % (f)
-
-    #     #             items[f] = shelf[f]
-
-    #     #     except (KeyboardInterrupt, SystemExit):
-    #     #         break
-    #     #         raise
-    #     #     except:
-    #     #         raise
-    #     return items

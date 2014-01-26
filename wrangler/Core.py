@@ -514,3 +514,34 @@ class Reporter(object):
         if self.config["verbose"] == True:
             print message
 
+
+
+"""
+---------------------------------------------------------------------------------------------------
+Utilities
+---------------------------------------------------------------------------------------------------
+"""
+
+class Extension(object):
+    """
+    Simple implementation of extensions.
+    """
+    default = {
+        "options":{}
+    }
+    def __init__(self, config=None, node_graph=None):
+        self.config = config if config != None else self.default
+        self.node_graph = node_graph
+
+
+class Hook(object):
+    """
+    Mega-simple hooking.
+    """
+    def __init__(self, config, renderer):
+        self.config = config
+        self.renderer = renderer
+        return None
+
+    def process(self, items):
+        return None

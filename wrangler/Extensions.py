@@ -1,13 +1,9 @@
 import pprint 
 import time 
 import os
+import wrangler.Core as wrangler
 
-class SiteMap(object):
-    def __init__(self, config={"options":{"webroot":"/"}}, node_graph=None):
-        self.webroot = config["options"]["webroot"]
-        self.node_graph = node_graph
-        return None
-
+class SiteMap(wrangler.Extension):
     def process_node(self, node):
         data = []
         for key in node.children:
@@ -28,11 +24,15 @@ class SiteMap(object):
         return data
         
     def run(self):
+        self.webroot = self.config["options"]["webroot"]
         res = self.process_node(self.node_graph.tree())
+        if "debug" in self.config["options"] and self.config["options"]["debug"] == True:
+            p = pprint.PrettyPrinter(depth=12)
+            p.pprint(res)
         return res
 
 
-class CacheBuster(object):
+class CacheBuster(wrangler.Extension):
     def __init__(self, config={"options":{}}, node_graph=None):
         self.config = config
         
@@ -40,7 +40,7 @@ class CacheBuster(object):
         return int(time.time())
 
 
-class FileInfo(object):
+class FileInfo(wrangler.Extension):
     def __init__(self, config={"options":{"directory":"assets", "filetypes": ["css", "pdf"]}}, node_graph=None):
         self.config = config
 
@@ -64,11 +64,3 @@ class FileInfo(object):
         return assets
 
 
-class Hook(object):
-    def __init__(self, config, renderer):
-        self.config = config
-        self.renderer = renderer
-        return None
-
-    def process(self, items):
-        return None

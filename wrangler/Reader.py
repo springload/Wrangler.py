@@ -38,15 +38,15 @@ class Reader():
 
 
     def check_custom_default(self):
-        filename = "%s/%s.py" % (self.config["views"], self.default_class)
+        filename = "%s/%s.py" % (self.config["lib_path"], self.default_class)
         return os.path.exists(filename)
 
 
     def load_class(self, file_class):
-        filename = "%s/%s.py" % (self.config["views"], file_class)
+        filename = "%s/%s.py" % (self.config["lib_path"], file_class)
 
         if not os.path.exists(filename):
-            raise Exception("path %s doesn't exist in %s" % (file_class, self.config["views"]))
+            raise Exception("path %s doesn't exist in %s" % (file_class, self.config["lib_path"]))
 
         directory, module_name = os.path.split(filename)
         module_name = os.path.splitext(module_name)[0]
@@ -155,7 +155,7 @@ class Reader():
 
                 page_view = page_data["meta"]["view"]
 
-                if (page_view != None and "views" in self.config):
+                if (page_view != None and "lib_path" in self.config):
                     PageClass = self.load_class(page_view)
                 elif self.custom_default_module:
                     PageClass = self.load_class(self.default_class)

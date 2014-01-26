@@ -28,7 +28,7 @@ class Wrangler():
             "force": "false",
             "nocache": "false",
             "item_class": "Page",
-            "views": None,
+            "lib_path": "site/lib",
             "extensions": {
                 "SiteMap": {
                     "options": {
@@ -44,6 +44,9 @@ class Wrangler():
                         "filetypes": ["css", "pdf"],
                         "webroot": "www"
                     }
+                },
+                "MooExtension": {
+                    "options": {}
                 }
             }
         },
@@ -122,8 +125,8 @@ class Wrangler():
 
         self.update_config(args)
 
-        if "views" in self.config:
-            self.load_classes(self.config["views"])
+        if "lib_path" in self.config:
+            self.load_classes(self.config["lib_path"])
 
         self._reporter = Core.Reporter(self.config)
         self._reader = Reader.Reader(self.config)
@@ -132,7 +135,6 @@ class Wrangler():
 
         self._reporter.log("Digesting \"%s\" files from \"%s\"" % (self.config["data_format"], self.config["input_dir"]), "blue")
         self.graph = self._reader.fetch()
-
 
 
         # Set output paths before trying to render anything.
@@ -153,17 +155,7 @@ class Wrangler():
             hook = sys.modules["WranglerHooks"].BeforeRender(self.config, self._renderer)
             hook.process(self.graph)
 
-        extension_classes = inspect.getmembers(sys.modules["wrangler.Extensions"], inspect.isclass)
-        if extension_classes:
-            for extension_name, extension_config in self.config["extensions"].items():
-                try:
-                    ext = [(name, obj) for (name, obj) in extension_classes if name == extension_name]
-                    if ext[0]:
-                        extension = ext[0][1](extension_config, self.graph)
-                        self._reporter.verbose("Running extension %s > site.%s" % (ext[0][0], ext[0][0].lower()))
-                        self.config["site_vars"][extension_name.lower()] = extension.run()
-                except:
-                    self._reporter.log("Couldn't load extension %s" % (extension_name), "red") 
+        self.process_extensions()
     
 
         rendered = 0
@@ -217,6 +209,7 @@ class Wrangler():
 
         moduleNames = []
 
+
         for f in classfiles:
             moduleNames.append(os.path.basename(f.replace(".py", "")))
 
@@ -226,6 +219,27 @@ class Wrangler():
             finally:
                 # restore the syspath
                 sys.path[:] = path 
+
+
+    def process_extensions(self):
+        """
+        Load extensions from the core and import any from the site/lib directory too
+        """
+        extension_classes = inspect.getmembers(sys.modules["wrangler.Extensions"], inspect.isclass)
+
+        if "lib_path" in self.config:
+            extension_classes = extension_classes + inspect.getmembers(sys.modules["Extensions"], inspect.isclass)
+
+        if extension_classes:
+            for extension_name, extension_config in self.config["extensions"].items():
+                # try:
+                    ext = [(name, obj) for (name, obj) in extension_classes if name == extension_name]
+                    if ext[0]:
+                        extension = ext[0][1](extension_config, self.graph)
+                        self._reporter.verbose("Running extension %s > site.%s" % (ext[0][0], ext[0][0].lower()))
+                        self.config["site_vars"][extension_name.lower()] = extension.run()
+                # except:
+                    # self._reporter.log("Couldn't load extension %s" % (extension_name), "red")
 
 
 def start():

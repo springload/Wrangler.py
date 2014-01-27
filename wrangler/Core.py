@@ -149,8 +149,13 @@ class Node(object):
 
         directories = [d for d in self.get_parent().get_children() if d.tag == 'dir']
         
+        # print "child pages for %s" % (self.path)
+
         for node in directories:
             index = node.get_child("index")
+
+            # print "\t", node.path
+
 
             if index:
                 children.append(index)

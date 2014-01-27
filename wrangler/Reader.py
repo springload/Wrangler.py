@@ -108,9 +108,49 @@ class Reader():
             node.tag = 'file'
 
             if basename == "index.%s" % (self.data_format):
-                node.is_index = True
-                
+                node.is_index = True 
             return node
+
+
+    def comparitor(self, a, b):
+        a_cargo = a.get_cargo()
+        b_cargo = b.get_cargo()
+
+        if not a_cargo:
+            if a.tag == "dir":
+                for _child in a.children:
+                    if _child.path.endswith("index.%s" % (self.config["data_format"])):
+                        a_cargo = _child.get_cargo()
+               
+        if not b_cargo:
+            if b.tag == "dir":
+                for _child in b.children:
+                    if _child.path.endswith("index.%s" % (self.config["data_format"])):
+                        b_cargo = _child.get_cargo()
+                       
+        try:
+            a_weight = a_cargo.get_weight()
+        except:
+            a_weight = 0
+
+        try:
+            b_weight = b_cargo.get_weight()
+        except:
+            b_weight = 0
+
+        if a_weight < b_weight: return -1
+        if a_weight > b_weight: return 1
+
+        return 0
+
+
+    def recursive_sort(self, node):
+        if node.tag == 'dir':
+            node.children = sorted(node.children, cmp=self.comparitor)
+            # print "sorted: ", [_child.path for _child in node.children]
+            for n in node.children:
+                self.recursive_sort(n)
+        return node
 
 
     def fetch(self):
@@ -119,17 +159,17 @@ class Reader():
 
         self.graph = NodeGraph()
 
-        root_node = self.dir_as_tree(self.input_dir)        
+        root_node = self.dir_as_tree(self.input_dir)
 
-        
         self.graph.root(root_node)
         
         for key, node in self.graph.all().items():
             if node.tag == "file":
-
                 node.add_cargo(self.new_item(parser, shelf, node.path))
         
+        self.recursive_sort(root_node)
         self.save_cache(shelf)
+
         return self.graph
 
 

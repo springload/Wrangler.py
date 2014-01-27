@@ -44,9 +44,6 @@ class Wrangler():
                         "filetypes": ["css", "pdf"],
                         "webroot": "www"
                     }
-                },
-                "MooExtension": {
-                    "options": {}
                 }
             }
         },
@@ -227,19 +224,20 @@ class Wrangler():
         """
         extension_classes = inspect.getmembers(sys.modules["wrangler.Extensions"], inspect.isclass)
 
-        if "lib_path" in self.config:
+        if "lib_path" in self.config and "Extensions" in sys.modules:
             extension_classes = extension_classes + inspect.getmembers(sys.modules["Extensions"], inspect.isclass)
 
         if extension_classes:
             for extension_name, extension_config in self.config["extensions"].items():
-                # try:
+                try:
                     ext = [(name, obj) for (name, obj) in extension_classes if name == extension_name]
+                    
                     if ext[0]:
                         extension = ext[0][1](extension_config, self.graph)
                         self._reporter.verbose("Running extension %s > site.%s" % (ext[0][0], ext[0][0].lower()))
                         self.config["site_vars"][extension_name.lower()] = extension.run()
-                # except:
-                    # self._reporter.log("Couldn't load extension %s" % (extension_name), "red")
+                except:
+                    self._reporter.log("Couldn't load extension %s" % (extension_name), "red")
 
 
 def start():

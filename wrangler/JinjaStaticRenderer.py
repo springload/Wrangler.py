@@ -28,10 +28,17 @@ def markdown_filter(value):
     out = marked.convert(output)
     return out
 
-def filter_template_dir(filename):
+def filter_hidden_files(filename):
     _name = os.path.basename(filename)
-    if _name.startswith(".") or ".svn" in _name:
+    _path = os.path.dirname(filename)
+
+    for _segment in _path.split(os.sep):
+        if _segment.startswith("."):
+            return False
+    if _name.startswith("."):
         return False;
+    print _name
+
     return True;
 
 
@@ -59,14 +66,14 @@ class JinjaStaticRenderer(Core.Renderer):
 
         self.reporter.verbose("Ensure directory exists: \033[34m%s\033[0m" % (var_path))
         util.ensure_dir(var_path)
-    
+
+        self.reporter.verbose("Loading templates from: \033[34m%s\033[0m" % (self.config['templates_dir']))
         self.env.compile_templates(
             self.config['compiled_templates_file'],
             ignore_errors=False,
-            filter_func=filter_template_dir 
+            filter_func=filter_hidden_files 
             )
 
-        self.reporter.verbose("Loading templates from: \033[34m%s\033[0m" % (self.config['templates_dir']))
         self.reporter.verbose("Compile templates to .zip: \033[32m%s\033[0m" % (self.config['compiled_templates_file']))
 
 

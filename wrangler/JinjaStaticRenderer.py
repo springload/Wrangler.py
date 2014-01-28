@@ -29,7 +29,8 @@ def markdown_filter(value):
     return out
 
 def filter_template_dir(filename):
-    if filename.startswith("."):
+    _name = os.path.basename(filename)
+    if _name.startswith(".") or ".svn" in _name:
         return False;
     return True;
 

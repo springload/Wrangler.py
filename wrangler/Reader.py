@@ -185,7 +185,13 @@ class Reader():
 
 
     def new_item(self, parser, shelf, filename):
-        mtime = os.path.getmtime(filename)
+
+        try:
+            mtime = os.path.getmtime(filename)
+        except:
+            print "Oops! Couldn't load \"%s\". Check the path exists." % (filename)
+            return False
+
         if (not shelf.has_key(filename)) or (shelf[filename].get_mtime() < mtime) or (self.nocache):
             
             # Check if custom class is set, otherwise make it a page... 

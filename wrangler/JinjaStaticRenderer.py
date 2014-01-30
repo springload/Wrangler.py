@@ -5,6 +5,7 @@ import traceback
 import glob
 import Core
 import utilities as util
+import types
 
 from docutils.core import publish_parts
 from jinja2 import Environment, FileSystemLoader, meta, BaseLoader, TemplateNotFound, ChoiceLoader, Template, Markup
@@ -28,18 +29,28 @@ def markdown_filter(value):
     out = marked.convert(output)
     return out
 
-def filter_hidden_files(filename):
-    _name = os.path.basename(filename)
-    _path = os.path.dirname(filename)
 
-    for _segment in _path.split(os.sep):
-        if _segment.startswith("."):
-            return False
-    if _name.startswith("."):
-        return False;
-    print _name
 
-    return True;
+def load_custom_filters(path):
+    classfiles = [os.path.join(dirpath, f)
+        for dirpath, dirnames, files in os.walk(path)
+        for f in files if f.endswith('Filters.py')]
+
+    path = list(sys.path)
+    sys.path.insert(0, path)
+
+    moduleNames = []
+
+    for f in classfiles:
+        moduleNames.append(os.path.basename(f.replace(".py", "")))
+
+    if len(moduleNames) > 0:
+        try:
+            map(__import__, moduleNames);
+        finally:
+            # restore the syspath
+            sys.path[:] = path 
+
 
 
 class JinjaStaticRenderer(Core.Renderer):
@@ -58,7 +69,22 @@ class JinjaStaticRenderer(Core.Renderer):
             )
         
         self.env.filters["markdown"] = markdown_filter
-        self.env.filters['rst'] = rst_filter        
+        self.env.filters['rst'] = rst_filter
+
+        # Load up some custom, project specific filters
+        if "lib_path" in self.config and os.path.exists(self.config["lib_path"]):
+            load_custom_filters(self.config["lib_path"])
+            customFilters = sys.modules["Filters"]
+
+            if customFilters:
+                items = [customFilters.__dict__.get(a) for a in dir(customFilters) if isinstance(customFilters.__dict__.get(a), types.FunctionType)]
+
+                for fn in items:
+                    _name = fn.__name__.lower()
+                    if _name.startswith("filter_"):
+                        _name = _name.replace("filter_", "")
+                        self.env.filters[_name] = fn
+
         self.template_trees = {}
         self.template_modified_times = {}
         
@@ -71,10 +97,24 @@ class JinjaStaticRenderer(Core.Renderer):
         self.env.compile_templates(
             self.config['compiled_templates_file'],
             ignore_errors=False,
-            filter_func=filter_hidden_files 
+            filter_func=self.filter_hidden_files 
             )
 
         self.reporter.verbose("Compile templates to .zip: \033[32m%s\033[0m" % (self.config['compiled_templates_file']))
+    
+    def filter_hidden_files(self, filename):
+        _name = os.path.basename(filename)
+        _path = os.path.dirname(filename)
+
+        for _segment in _path.split(os.sep):
+            if _segment.startswith("."):
+                return False
+        if _name.startswith("."):
+            return False;
+        
+        self.reporter.verbose("Loading template: %s" % (_name))
+
+        return True;
 
 
     def get_template_mtime(self, template):

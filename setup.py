@@ -19,7 +19,8 @@ setup(name='wrangler',
 		'argparse',
 		'docutils',
 		'pyyaml',
-		'watchdog'
+		'watchdog',
+		'blinker'
 	],
 	scripts=['bin/wrangler'],
 	zip_safe=False)

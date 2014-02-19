@@ -5,6 +5,34 @@ import traceback
 import utilities as util
 import itertools
 from copy import deepcopy
+from unicodedata import normalize
+from blinker import signal
+
+"""
+---------------------------------------------------------------------------------------------------
+Generally useful things
+---------------------------------------------------------------------------------------------------
+
+"""
+
+_punct_re = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.:]+')
+
+def slugify(text, delim=u'-'):
+    """Generates an slightly worse ASCII-only slug."""
+    result = []
+    for word in _punct_re.split(text.lower()):
+        word = normalize('NFKD', word).encode('ascii', 'ignore')
+        if word:
+            result.append(word)
+    return unicode(delim.join(result))
+
+# Takes a path, slugifies the filename, returns it.
+
+def clean_path(filename, ext):
+    path = os.path.dirname(filename)
+    basename = os.path.basename(filename)
+    clean_filename = slugify(u"%s" % (basename))
+    return os.path.join(path,clean_filename + os.extsep + ext)
 
 """
 ---------------------------------------------------------------------------------------------------
@@ -70,6 +98,9 @@ class Parser(object):
             "mtime": mtime
         })
 
+        sig = signal("wranglerLoadItem")
+        sig.send('item', item=file_name, file_contents=file_contents, mtime=mtime)
+
         return page_data
 
     def load(self, filepath):
@@ -84,7 +115,7 @@ class Parser(object):
             if file_extension == ".%s" % (self.accepts):
                 return self.parse(file_path, file_name, relative_path, file_contents, mtime)
             else:
-                raise Exception("%s does not parse %s, expected .%s" % (self.__class__.__name__, file_extension, self.accepts))
+                print "%s does not parse %s, expected .%s. Check the 'data_format' in wrangler.json" % (self.__class__.__name__, file_extension, self.accepts)
 
 
 """
@@ -402,7 +433,7 @@ class Writer(object):
         return None
 
     def generate_output_path(self, filename):
-        relative_output_path = filename + os.extsep +  self.output_file_ext
+        relative_output_path = clean_path(filename, self.output_file_ext)
         path = os.path.join(self.output_path, relative_output_path)
         path_no_ext = os.path.join(self.output_path, filename + os.extsep)
         return path, relative_output_path, path_no_ext
@@ -419,11 +450,16 @@ class Writer(object):
             return False
 
         try: 
+            sig = signal('wranglerBeforeSaveItem')
+            sig.send('item', item=item, path=filename)
             util.ensure_dir(new_directory)
             file_object = open(filename, "w")
             file_object.write(html.encode('utf8'))
             self.reporter.print_stdout(item.get_file_path(), filename, item.get_template())
             item.on_save()
+            siggy = signal('wranglerOnSaveItem')
+            siggy.send('item', item=item, path=filename)
+
         except:
             print "\033[31mCouldn't write %s\033[0m" % (filename)
             traceback.print_exc()
@@ -521,32 +557,22 @@ class Reporter(object):
 
 
 
-"""
----------------------------------------------------------------------------------------------------
-Utilities
----------------------------------------------------------------------------------------------------
-"""
+# """
+# ---------------------------------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------------------------------
+# """
 
-class Extension(object):
-    """
-    Simple implementation of extensions.
-    """
-    default = {
-        "options":{}
-    }
-    def __init__(self, config=None, node_graph=None):
-        self.config = config if config != None else self.default
-        self.node_graph = node_graph
+# class Extension(object):
+#     """
+#     Simple implementation of extensions.
+#     """
+#     default = {
+#         "options":{}
+#     }
+#     def __init__(self, config=None, node_graph=None, reporter=None):
+#         self.config = config if config != None else self.default
+#         self.node_graph = node_graph
+#         self.reporter=reporter
 
 
-class Hook(object):
-    """
-    Mega-simple hooking.
-    """
-    def __init__(self, config, renderer):
-        self.config = config
-        self.renderer = renderer
-        return None
-
-    def process(self, items):
-        return None

@@ -1,9 +1,16 @@
 import pprint 
 import time 
 import os
-import wrangler.Core as wrangler
+from blinker import signal
 
-class SiteMap(wrangler.Extension):
+extension = signal("wranglerExtension")
+
+class SiteMap(object):
+    def __init__(self, config, reporter, nodes):
+        self.config = config
+        self.reporter = reporter
+        self.nodes = nodes
+
     def process_node(self, node):
         data = []
         for key in node.children:
@@ -24,43 +31,43 @@ class SiteMap(wrangler.Extension):
         return data
         
     def run(self):
-        self.webroot = self.config["options"]["webroot"]
-        res = self.process_node(self.node_graph.tree())
-        if "debug" in self.config["options"] and self.config["options"]["debug"] == True:
+        self.webroot = self.config["webroot"]
+        res = self.process_node(self.nodes.tree())
+        if "debug" in self.config and self.config["debug"] == True:
             p = pprint.PrettyPrinter(depth=12)
             p.pprint(res)
         return res
 
 
-class CacheBuster(wrangler.Extension):
-    def __init__(self, config={"options":{}}, node_graph=None):
-        self.config = config
-        
-    def run(self):
-        return int(time.time())
+@extension.connect
+def sitemap(sender, **kwargs):
+    return SiteMap(kwargs["config"]["extensions"]["sitemap"], kwargs["reporter"], kwargs["nodes"]).run()
 
 
-class FileInfo(wrangler.Extension):
-    def __init__(self, config={"options":{"directory":"assets", "filetypes": ["css", "pdf"]}}, node_graph=None):
-        self.config = config
+@extension.connect
+def cachebuster(sender, **kwargs):
+    return int(time.time())
 
-    def run(self):
-        assets = {}
-        for root, dirs, files in os.walk(self.config["options"]["directory"]):
-            files = [f for f in files if not f[0] == '.' and any(f.endswith(x) for x in self.config["options"]["filetypes"])]
-            dirs[:] = [d for d in dirs if not d[0] == '.']
-            for fn in files:
-                path = os.path.join(root, fn)
-                file_type = os.path.splitext(path)[1].replace(os.path.extsep, "")
-                mtime = os.path.getmtime(path)
-                size = os.stat(path).st_size # in bytes
-                assets[path] = {
-                    "path": path.replace(self.config["options"]["webroot"], ""),
-                    "name": fn,
-                    "size": size,
-                    "type": file_type,
-                    "mtime": mtime
-                }
-        return assets
 
+@extension.connect
+def fileinfo(sender, **kwargs):
+    assets = {}
+    config = kwargs["config"]["extensions"]["fileinfo"]
+
+    for root, dirs, files in os.walk(config["directory"]):
+        files = [f for f in files if not f[0] == '.' and any(f.endswith(x) for x in config["filetypes"])]
+        dirs[:] = [d for d in dirs if not d[0] == '.']
+        for fn in files:
+            path = os.path.join(root, fn)
+            file_type = os.path.splitext(path)[1].replace(os.path.extsep, "")
+            mtime = os.path.getmtime(path)
+            size = os.stat(path).st_size # in bytes
+            assets[path] = {
+                "path": path.replace(config["webroot"], ""),
+                "name": fn,
+                "size": size,
+                "type": file_type,
+                "mtime": mtime
+            }
+    return assets 
 

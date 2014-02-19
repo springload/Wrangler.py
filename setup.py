@@ -18,7 +18,9 @@ setup(name='wrangler',
 		'jinja2',
 		'argparse',
 		'docutils',
-		'pyyaml'
+		'pyyaml',
+		'watchdog',
+		'blinker'
 	],
 	scripts=['bin/wrangler'],
 	zip_safe=False)

@@ -74,7 +74,7 @@ class JinjaStaticRenderer(Core.Renderer):
         # Load up some custom, project specific filters
         if "lib_path" in self.config and os.path.exists(self.config["lib_path"]):
             load_custom_filters(self.config["lib_path"])
-            customFilters = sys.modules["Filters"]
+            customFilters = sys.modules["Filters"] if "Filters" in sys.modules else None
 
             if customFilters:
                 items = [customFilters.__dict__.get(a) for a in dir(customFilters) if isinstance(customFilters.__dict__.get(a), types.FunctionType)]

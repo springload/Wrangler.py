@@ -156,7 +156,7 @@ class Wrangler():
     
 
         rendered = 0
-
+        
         for key, node in self.graph.all().items():
             if node.tag == 'file':
                 # Leaky boat.

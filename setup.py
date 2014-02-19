@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='wrangler',
-	version='0.1.6.3',
+	version='0.1.6.4',
 	description='A pythonic static site generator',
 	long_description=readme(),
 	url='http://github.com/springload/Wrangler.py',

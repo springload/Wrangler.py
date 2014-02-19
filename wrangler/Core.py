@@ -118,6 +118,36 @@ class Parser(object):
                 print "%s does not parse %s, expected .%s. Check the 'data_format' in wrangler.json" % (self.__class__.__name__, file_extension, self.accepts)
 
 
+
+
+"""
+---------------------------------------------------------------------------------------------------
+NodeGraph
+---------------------------------------------------------------------------------------------------
+
+Allow for flat and tree navigation within a directory
+
+"""
+
+class NodeGraph():
+    def __init__(self):
+        self._nodes = {}
+        self._root = None
+
+    def add(self, item):
+        self._nodes[item.path] = item
+
+    def root(self, item):
+        self._root = item
+
+    def tree(self):
+        return self._root
+
+    def all(self):
+        return self._nodes
+
+
+
 """
 ---------------------------------------------------------------------------------------------------
 Node

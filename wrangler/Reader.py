@@ -4,29 +4,15 @@ import shelve
 import sys 
 import Core
 import Parsers
-
-
-class NodeGraph():
-    def __init__(self):
-        self._nodes = {}
-        self._root = None
-
-    def add(self, item):
-        self._nodes[item.path] = item
-
-    def root(self, item):
-        self._root = item
-
-    def tree(self):
-        return self._root
-
-    def all(self):
-        return self._nodes
-
+from blinker import signal
 
 # Takes a directory and transforms the matching elements into Page instances.
 class Reader():
     default_class = "Page"
+    parsers = {}
+    classes = {
+        default_class: Core.Page
+    }
 
     def __init__(self, config):
         self.input_dir = config['input_dir']
@@ -34,36 +20,46 @@ class Reader():
         self.data_format = config['data_format']
         self.nocache = config['nocache']
         self.config = config
-        self.custom_default_module = self.check_custom_default()
+        self.check_custom_default_class()
 
 
-    def check_custom_default(self):
-        filename = "%s/%s.py" % (self.config["lib_path"], self.default_class)
-        return os.path.exists(filename)
+    def check_custom_default_class(self):
+        if "lib_path" in self.config:
+            filename = "%s/%s.py" % (self.config["lib_path"], self.default_class)
+            if os.path.exists(filename):
+                self.load_class(self.default_class)
 
 
     def load_class(self, file_class):
-        filename = "%s/%s.py" % (self.config["lib_path"], file_class)
 
-        if not os.path.exists(filename):
-            raise Exception("path %s doesn't exist in %s" % (file_class, self.config["lib_path"]))
+        if file_class == None:
+            file_class = self.default_class
+        else:
 
-        directory, module_name = os.path.split(filename)
-        module_name = os.path.splitext(module_name)[0]
+            if not file_class in self.classes or file_class == self.default_class:
 
-        path = list(sys.path)
-        sys.path.insert(0, directory)
+                filename = "%s/%s.py" % (self.config["lib_path"], file_class)
 
-        try:
-            module = __import__(module_name)
-        finally:
-            sys.path[:] = path # restore
+                if not os.path.exists(filename):
+                    raise Exception("path %s doesn't exist in %s" % (file_class, self.config["lib_path"]))
 
-        for name in dir(module):
-            if module_name.split(".")[0] == name:
-                return getattr(module, name)
+                directory, module_name = os.path.split(filename)
+                module_name = os.path.splitext(module_name)[0]
 
-        return Page
+                path = list(sys.path)
+                sys.path.insert(0, self.config["lib_path"])
+
+                try:
+                    module = __import__(module_name)
+                finally:
+                    sys.path[:] = path # restore
+
+                for name in dir(module):
+                    if module_name.split(".")[0] == name:
+                        self.classes[name] = getattr(module, name)
+            
+
+        return self.classes[file_class]
     
 
     def init_cache(self):
@@ -147,7 +143,6 @@ class Reader():
     def recursive_sort(self, node):
         if node.tag == 'dir':
             node.children = sorted(node.children, cmp=self.comparitor)
-            # print "sorted: ", [_child.path for _child in node.children]
             for n in node.children:
                 self.recursive_sort(n)
         return node
@@ -155,17 +150,14 @@ class Reader():
 
     def fetch(self):
         shelf = self.init_cache()
-        parser = self.load_parser_by_format(self.data_format, self.input_dir, "")
 
-        self.graph = NodeGraph()
-
+        self.graph = Core.NodeGraph()
         root_node = self.dir_as_tree(self.input_dir)
-
         self.graph.root(root_node)
         
         for key, node in self.graph.all().items():
             if node.tag == "file":
-                node.add_cargo(self.new_item(parser, shelf, node.path))
+                node.add_cargo(self.new_item(shelf, node.path))
         
         self.recursive_sort(root_node)
         self.save_cache(shelf)
@@ -173,18 +165,27 @@ class Reader():
         return self.graph
 
 
-    def load_parser_by_format(self, data_format, input_dir, root):
+    def load_parser_by_format(self, data_format):
+        """
+        Load parsers based on the file contents and cache 'em up so we can
+        re-use them.
+        """
+        if not data_format in self.parsers:
+            for parser in dir(Parsers):
+                p =  getattr(Parsers, parser)
+                if hasattr(p, "__bases__") and hasattr(p, "accepts"):
+                    if data_format == p.accepts:
+                        self.parsers[data_format] =  p(self.input_dir, "")
+        try: 
+            return self.parsers[data_format]
+        except:
+            raise Exception("No parser found for %s" % (data_format))
 
-        for parser in dir(Parsers):
-            p =  getattr(Parsers, parser)
-            if hasattr(p, "__bases__") and hasattr(p, "accepts"):
-                if data_format == p.accepts:
-                    return p(input_dir, root)
 
-        raise Exception("No parser found for %s" % (data_format))
+    def new_item(self, shelf, filename):
 
-
-    def new_item(self, parser, shelf, filename):
+        file_format = os.path.splitext(filename)[1].replace(os.extsep, "")
+        parser = self.load_parser_by_format(file_format)
 
         try:
             mtime = os.path.getmtime(filename)
@@ -198,16 +199,12 @@ class Reader():
             page_data = parser.load(filename);
 
             if page_data:
+                page_view = None
 
-                page_view = page_data["meta"]["view"]
+                if "view" in page_data["meta"]:
+                    page_view = page_data["meta"]["view"]
 
-                if (page_view != None and "lib_path" in self.config):
-                    PageClass = self.load_class(page_view)
-                elif self.custom_default_module:
-                    PageClass = self.load_class(self.default_class)
-                else:
-                    PageClass = getattr(Core, self.default_class)
-
+                PageClass = self.load_class(page_view)
                 new_page = PageClass(page_data, self.config)
                 shelf[filename] = new_page
                 print "\033[1;35mCaching \033[0m\033[2m%s\033[0m" % (filename)

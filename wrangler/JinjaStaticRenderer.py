@@ -11,7 +11,7 @@ from docutils.core import publish_parts
 from jinja2 import Environment, FileSystemLoader, meta, BaseLoader, TemplateNotFound, ChoiceLoader, Template, Markup
 from SilentUndefined import SilentUndefined
 from MarkdownExtension import MarkdownExtension
-
+from blinker import signal
 
 def rst_filter(s):
     return Markup(publish_parts(source=s, writer_name='html')['body'])
@@ -74,7 +74,10 @@ class JinjaStaticRenderer(Core.Renderer):
         # Load up some custom, project specific filters
         if "lib_path" in self.config and os.path.exists(self.config["lib_path"]):
             load_custom_filters(self.config["lib_path"])
-            customFilters = sys.modules["Filters"]
+            customFilters = None 
+
+            if "Filters" in sys.modules:
+                customFilters = sys.modules["Filters"]
 
             if customFilters:
                 items = [customFilters.__dict__.get(a) for a in dir(customFilters) if isinstance(customFilters.__dict__.get(a), types.FunctionType)]
@@ -149,7 +152,8 @@ class JinjaStaticRenderer(Core.Renderer):
         template = self.load_template(template_name)
 
         if template and (self.should_render_item(item, template_name)):
-            # self.reporter.verbose("\033[37m%s last built at: %s\033[0m" % (item.get_file_path(), item.get_modified_time()))
+            sig = signal("wranglerRenderItem")
+            sig.send('item', item=item, template_name=template_name)
             return (template.render(data=item.get_content(), meta=item.get_metadata(), site=self.config["site_vars"]), item)
 
         return (False, item)

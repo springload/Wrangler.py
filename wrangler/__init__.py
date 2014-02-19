@@ -3,62 +3,21 @@ import sys
 import argparse
 import json
 import importlib
-import JinjaStaticRenderer as renderer
 import Reader as Reader
+import JinjaStaticRenderer as renderer
 import Core as Core
 import Extensions as Extensions
 import inspect
+import defaults as defaults
+import NewProject as generate
+import BasicServer as serve
+import Watcher as watch
+from blinker import signal
+
 
 class Wrangler():
 
-    defaults = {
-        "generator_config": {
-            "build_cache_file": "var/build.cache",
-            "default_template": "base.j2",
-            "templates_dir": "templates",
-            "compiled_templates_file": "var/jinja",
-            "compiled_templates_log": "var/jinja.log",
-            "output_file_extension": "html",
-            "output_dir": "www",
-            "input_dir": "site",
-            "data_format": "json",
-            "ignore": [".", "_"],
-            "site_vars":"site_vars",
-            "verbose": "false",
-            "force": "false",
-            "nocache": "false",
-            "item_class": "Page",
-            "lib_path": "site/lib",
-            "extensions": {
-                "SiteMap": {
-                    "options": {
-                        "webroot":"/"
-                    }
-                },
-                "CacheBuster": {
-                    "options": {}
-                },
-                "FileInfo": {
-                    "options": {
-                        "directory": "www/assets",
-                        "filetypes": ["css", "pdf"],
-                        "webroot": "www"
-                    }
-                }
-            }
-        },
-        "site_vars": {
-            "paths": {
-                "css": "assets/css",
-                "js": "assets/js",
-                "assets": "assets",
-                "images": "assets/images",
-                "webroot": "www",
-                "app": "app",
-                "content": "content"
-            }
-        }
-    }
+    defaults = defaults.defaults
 
     # Default config just loads the YAML config file
     config = {
@@ -68,64 +27,171 @@ class Wrangler():
     def __init__(self):
         return None
 
+    # Hmm it turns out there's not going to be any global options at all, the whole app
+    # works best as a series of subcommands with very independent options.
     def parse_args(self, args=None):
         d = '\033[32mProcess recursive directories of JSON files through Jinja2 templates. \033[0m'
         parser = argparse.ArgumentParser(description=d)
-        parser.add_argument('input_dir',
-                            help='\033[34mInput directory such as `site/content`\033[0m')
-        parser.add_argument('output_dir',
+        
+        subparsers = parser.add_subparsers(dest="subparser", help='sub-command help')
+        
+        # ---------------------------------------------------------------------
+        # wrangler create .
+        # ---------------------------------------------------------------------
+        # Creating a new project/scaffolding
+         
+        parser_generate = subparsers.add_parser('create', help='create help')
+        parser_generate.add_argument('path', type=str, help='wrangler create path')
+       
+
+        # ---------------------------------------------------------------------
+        # wrangler serve www
+        # ---------------------------------------------------------------------
+        # Serving up content on a specified URL
+        
+        parser_serve = subparsers.add_parser('serve', help='server help')
+        parser_serve.add_argument('path', type=str, help='wrangler server path')
+        parser_serve.add_argument("-p", "--port",
+                            help='\033[34mThe port number, eg `8000`\033[0m', type=int)
+
+        # ---------------------------------------------------------------------
+        # wrangler build [i] [o]
+        # ---------------------------------------------------------------------
+        # Running the build command
+        
+        parser_build = subparsers.add_parser('build', help='build help')
+        parser_build.add_argument('input_dir',
+                            help='\033[34mInput directory such as `content`\033[0m')
+        parser_build.add_argument('output_dir',
                             help='\033[34mOutput directory such as `www`\033[0m')
-        parser.add_argument("-t", "--templates_dir",
+        parser_build.add_argument("-t", "--templates_dir",
                             help='\033[34mTemplate directory such as `templates`\033[0m')
-        parser.add_argument("-c", "--config",
-                            help='\033[34mPath to `config.json`\033[0m')
-        parser.add_argument("-o", "--output_file_extension",
+        parser_build.add_argument("-c", "--config",
+                            help='\033[34mPath to `wrangler.json`\033[0m')
+        parser_build.add_argument("-o", "--output_file_extension",
                             help='\033[34mType of files to output such as `html`\033[0m')
-        parser.add_argument("-d", "--data_format",
+        parser_build.add_argument("-d", "--data_format",
                             help='\033[34mType of files to match in input_dir, such as `json`\033[0m')
-        parser.add_argument("-v", "--verbose", action="store_true",
+        parser_build.add_argument("-v", "--verbose", action="store_true",
                             help='\033[34mPrint all the plumbing\033[0m')
-        parser.add_argument("-f", "--force", action="store_true",
+        parser_build.add_argument("-f", "--force", action="store_true",
                             help='\033[34mSmash out all the templates regardless of mtime\033[0m')
-        parser.add_argument("-n", "--nocache", action="store_true",
+        parser_build.add_argument("-n", "--nocache", action="store_true",
                             help='\033[34mTurn off data persistence\033[0m')
+
+
+        # ---------------------------------------------------------------------
+        # wrangler watch [i] [o]
+        # ---------------------------------------------------------------------
+        # Same config as build..
+        
+        parser_watch = subparsers.add_parser('watch', help='build help')
+        parser_watch.add_argument('input_dir',
+                            help='\033[34mInput directory such as `content`\033[0m')
+        parser_watch.add_argument('output_dir',
+                            help='\033[34mOutput directory such as `www`\033[0m')
+        parser_watch.add_argument("-f", "--force", action="store_true",
+                            help='\033[34mSmash out all the templates regardless of mtime\033[0m')
+        parser_watch.add_argument("-n", "--nocache", action="store_true",
+                            help='\033[34mTurn off data persistence\033[0m')
+        parser_watch.add_argument("-v", "--verbose", action="store_true",
+                            help='\033[34mPrint all the plumbing\033[0m')
+        
+
+        parser_clean = subparsers.add_parser('clean', help='clean help')
+
+
         return parser.parse_args(args)
 
 
     def update_config(self, args):
+        userConfig = None
         # If a config file is specified, load all config from there instead
-        if (args.__dict__["config"] != None):
-            self.config['config_path'] = args.__dict__["config"]
-
+        if (hasattr(args, "config")):
+            self.config['config_path'] = args.config
 
         self.config.update( self.defaults["generator_config"] )
 
-        if os.path.exists( self.config['config_path'] ):
-            userConfig = json.load( file(self.config['config_path']) )
-            self.config.update( userConfig["generator_config"] )
-        # else: 
-            # userConfig = self.defaults
+        _path = u"%s" % (self.config['config_path'])
+        self.config['config_path'] = _path 
 
-        # Apply settings from the config file (if present)
-        # self.config.update( userConfig["generator_config"] )
+        if os.path.exists( _path ):
+            userConfig = json.load( file(_path) )
+            self.config.update( userConfig["generator_config"] )
 
         # Apply command line flags if set, ignore Nones.
         self.config.update((k, v) for k, v in args.__dict__.iteritems() if v is not None)
         
-        # The site vars object is mapped to an item in the json object
-        self.config["site_vars"] = userConfig[userConfig["generator_config"]["site_vars"]]
+        if userConfig:
+            # The site vars object is mapped to an item in the json object
+            self.config["site_vars"] = userConfig[userConfig["generator_config"]["site_vars"]]
+        else:
+            self.config["site_vars"] = {}
 
+        if "lib_path" in self.config:
+            self.load_classes(self.config["lib_path"])
 
 
     def main(self, args=None):
         args = self.parse_args(args)
 
-        self.update_config(args)
-
-        if "lib_path" in self.config:
-            self.load_classes(self.config["lib_path"])
-
+        # Reporter only really needs to check the verbosity level
         self._reporter = Core.Reporter(self.config)
+
+        if "subparser" in args:
+            
+            if args.subparser == "create":
+                generate.NewProject(args.path, self._reporter)
+                exit()
+            
+            if args.subparser == "serve":
+                port = None
+                if args.port:
+                    port = args.port 
+
+                serve.BasicServer(args.path, self._reporter, port)
+            
+            if args.subparser == "build":
+                self.update_config(args)
+                self.render()
+
+            if args.subparser == "watch":
+                self.update_config(args)
+
+                watch_init = signal('watch_init')
+                watch_change = signal('watch_change')
+                
+                watch_init.connect(self.on_watch_ready)
+                watch_change.connect(self.on_watch_change)
+                watcher = watch.Watcher(self)
+
+            if args.subparser == "clean":
+                self.update_config(args)
+                files = [self.config["compiled_templates_file"], self.config["build_cache_file"]]
+                # try:
+                for f in files:
+                    if os.path.exists(f):
+                        try:
+                            os.remove(f)
+                            self._reporter.log("Cleaning up: %s" % (f), "blue")
+                        except:
+                            self._reporter.log("Couldn't access: %s" % (f), "red")
+                self._reporter.log("Done", "green")
+                exit()
+
+        else:
+            self._reporter.log("No action selected, try 'create', 'serve', or 'build'. Still stuck, try --help for more info", "red")
+
+    def on_watch_ready(self, sender):
+        self._reporter.log("Listening for changes in '%s', '%s'" % (self.config['input_dir'], self.config['templates_dir']), "blue")
+
+    def on_watch_change(self, sender):
+        self._reporter.log("Change detected in %s" % (sender.src_path), "green")
+        self.render()
+
+
+    def render(self):
+       
         self._reader = Reader.Reader(self.config)
         self._writer = Core.Writer(self.config["output_dir"], self.config["output_file_extension"], self._reporter)
         self._renderer = renderer.JinjaStaticRenderer(self.config, self._reporter, self._writer)
@@ -133,28 +199,23 @@ class Wrangler():
         self._reporter.log("Digesting \"%s\" files from \"%s\"" % (self.config["data_format"], self.config["input_dir"]), "blue")
         self.graph = self._reader.fetch()
 
+        total_nodes = 0
 
-        # Set output paths before trying to render anything.
-        # Two loops not so efficient... hmmm
-        def set_output(node):
+        for key, node in self.graph.all().items():
             if node.tag == 'file':
-                cargo = node.get_cargo()
+                cargo = node.get_cargo()     
                 if cargo:
                     cargo.set_output_path(self._writer.generate_output_path(cargo.relpath()))
-            else:
-                for child in node.children:
-                    set_output(child)
+                total_nodes += 1
 
-        set_output(self.graph.tree())
-
-
-        if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "BeforeRender"):
-            hook = sys.modules["WranglerHooks"].BeforeRender(self.config, self._renderer)
-            hook.process(self.graph)
+        before = signal('wranglerBeforeRender')
+        result = before.send('wrangler',
+                    config=self.config,
+                    renderer=self._renderer,
+                    reporter=self._reporter,
+                    nodes=self.graph)
 
         self.process_extensions()
-    
-
         rendered = 0
 
         for key, node in self.graph.all().items():
@@ -186,17 +247,25 @@ class Wrangler():
                     del cargo
     
 
-        if "WranglerHooks" in sys.modules and hasattr(sys.modules["WranglerHooks"], "AfterRender"):
-            hook = sys.modules["WranglerHooks"].AfterRender(self.config, self._renderer)
-            hook.process(self.graph)
+        after = signal('wranglerAfterRender')
+        final_result = after.send('wrangler',
+                    config=self.config,
+                    renderer=self._renderer,
+                    reporter=self._reporter,
+                    nodes=self.graph)
         
         if rendered > 0:
-            self._reporter.log("Built %s of %s pages in \"%s\" directory " % (rendered, len(self.graph.all()) ,self.config["output_dir"]), "green")
+            self._reporter.log("Built %s of %s pages in \"%s\" directory " % (rendered, total_nodes, self.config["output_dir"]), "green")
             self._reporter.set_last_build_time()
         else:
              self._reporter.log("Hmm... nothing's changed in \"%s\" or \"%s\" since last time.\nIf you've removed pages, or included a template dynamically, try --force" % (self.config["input_dir"], self.config["templates_dir"]), "red")
 
-    def load_classes(self, views): 
+
+
+    def load_classes(self, views):
+        """
+        Pull in files from the lib directory
+        """
         classfiles = [os.path.join(dirpath, f)
             for dirpath, dirnames, files in os.walk(views)
             for f in files if f.endswith('.py')]
@@ -205,7 +274,6 @@ class Wrangler():
         sys.path.insert(0, views)
 
         moduleNames = []
-
 
         for f in classfiles:
             moduleNames.append(os.path.basename(f.replace(".py", "")))
@@ -218,26 +286,17 @@ class Wrangler():
                 sys.path[:] = path 
 
 
+
     def process_extensions(self):
         """
         Load extensions from the core and import any from the site/lib directory too
         """
-        extension_classes = inspect.getmembers(sys.modules["wrangler.Extensions"], inspect.isclass)
+        sig = signal("wranglerExtension")
+        results = sig.send('wrangler', config=self.config, reporter=self._reporter, nodes=self.graph)
 
-        if "lib_path" in self.config and "Extensions" in sys.modules:
-            extension_classes = extension_classes + inspect.getmembers(sys.modules["Extensions"], inspect.isclass)
-
-        if extension_classes:
-            for extension_name, extension_config in self.config["extensions"].items():
-                try:
-                    ext = [(name, obj) for (name, obj) in extension_classes if name == extension_name]
-                    
-                    if ext[0]:
-                        extension = ext[0][1](extension_config, self.graph)
-                        self._reporter.verbose("Running extension %s > site.%s" % (ext[0][0], ext[0][0].lower()))
-                        self.config["site_vars"][extension_name.lower()] = extension.run()
-                except:
-                    self._reporter.log("Couldn't load extension %s" % (extension_name), "red")
+        for result in results:
+            responder = result[0]
+            self.config["site_vars"][responder.__name__] = result[1]
 
 
 def start():

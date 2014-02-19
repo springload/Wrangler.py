@@ -24,21 +24,20 @@ pip install wrangler
 Generate a new project
 
 ```
-wrangler --generate
+wrangler create .
 ```
 
 Build the little auto-generated blank site:
 
 ```
-wrangler content www
+wrangler build content www
 ```
 
-Serve `www/index.yaml` via an engine of your choice:
+Serve your sit via an engine of your choice:
 
 ```
-wrangler --serve www
+wrangler serve www
 ```
-
 
 
 # Okay, what did we just do?
@@ -64,48 +63,10 @@ Check that the `var` directory is writeable, as this is where Wrangler will stor
 
 To get started, fetch the files out of the `demo` directory. Or, if you can't wait, the obligatory one-liner:
 
-```
-mkdir content && mkdir templates && mkdir www && mkdir var && mkdir lib && touch content/index.yaml && touch templates/template.j2 && touch wrangler.json
-```
 
 ## Options
 
 Save some defaults into your `wrangler.json` config:
-
-```json
-{
-    "generator_config": {
-        "build_cache_file": "var/build.cache",
-        "default_template": "base.j2",
-        "templates_dir": "templates",
-        "compiled_templates_file": "var/jinja",
-        "compiled_templates_log": "var/jinja.log",
-        "output_file_extension": "html",
-        "data_format": "yaml",
-        "ignore": [".", "_"],
-        "site_vars":"my_custom_site_vars",
-        "lib_path": "lib",
-        "extensions": {
-            "SiteMap": {
-                "options": {
-                    "webroot":"/"
-                }
-            }
-        }
-    },
-    "my_custom_site_vars": {
-        "paths": {
-            "css": "/assets/css",
-            "js": "/assets/js",
-            "assets": "/assets/",
-            "images": "/assets/images",
-            "webroot": "www",
-            "content": "content"
-        }
-    }
-}
-
-```
 
 Whatever you assign to `site_vars` will be available in the template on the `site` dictionary:
 
@@ -118,7 +79,7 @@ Whatever you assign to `site_vars` will be available in the template on the `sit
 ## CLI options
 
 ```
-wrangler content www
+wrangler build content www
 ```
 
 ### Command line options 
@@ -148,6 +109,49 @@ optional arguments:
 
 # Low level stuff
 
+Loads everything from `lib` directory...
+
 ## Changing the page object
 
+## Hooks
+
+Hooking is handy for reporting, or modifying elements as they're being
+passed around
+
+
+```python
+from blinker import signal
+
+before_render = signal('wranglerBeforeRender')
+after_render = signal('wranglerAfterRender')
+extension = signal('wranglerExtension')
+
+# More hooks:
+# wranglerLoadItem
+# wranglerBeforeSaveItem
+# wranglerOnSaveItem
+# wranglerRenderItem
+
+@before_render.connect
+def my_hook(sender, **kwargs):
+    nodes = kw['nodes']
+    config = kw['config']
+    renderer = kw['renderer']
+    reporter = kw['reporter']
+    return "This is my basic hook!"
+
+```
+
+## Extensions
+
+```python
+from blinker import signal
+
+extension = signal('wranglerExtension')
+
+@extension.connect
+def my_extension(sender, **kwargs):
+    return "This is my basic extension!"
+
+```
 

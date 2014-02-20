@@ -28,7 +28,8 @@ class Wrangler(object):
             "force": False,
             "nocache": False,
             "input_dir": False,
-            "output_dir": False
+            "output_dir": False,
+            "data_formats": None
         },
         "site": {},
         "extensions": {}
@@ -197,10 +198,10 @@ class Wrangler(object):
 
     def render(self):
         conf = self.config["wrangler"]
-        self._reader = Reader.Reader(self.config)
+        self._reader = Reader.Reader(self.config, self._reporter)
         self._writer = Core.Writer(conf["output_dir"], conf["output_file_extension"], self._reporter)
         self._renderer = renderer.JinjaStaticRenderer(self.config, self._reporter, self._writer)
-        self._reporter.log(messages.start_render % (conf["data_formats"], conf["input_dir"]), "blue")
+        self._reporter.log(messages.start_render % (self._reader.data_formats, conf["input_dir"]), "blue")
         self.graph = self._reader.fetch()
 
         total_nodes = 0

@@ -20,7 +20,7 @@ wrangler:
 
     # Supported data formats. Ensure a parser is registered for each type.
     # More information about parsers can be found in the link at the top of the file.
-    data_formats: ['yaml', 'json', 'md']
+    data_formats: ['yaml', 'yml', 'json', 'js', 'md', 'markdown']
 
     # Ignore hidden files, and files starting with underscores
     ignore: ['.','_']

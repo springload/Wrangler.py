@@ -5,6 +5,7 @@ import sys
 import Core
 import Parsers
 from blinker import signal
+import messages as messages
 
 # Takes a directory and transforms the matching elements into Page instances.
 class Reader():
@@ -14,15 +15,44 @@ class Reader():
         default_class: Core.Page
     }
 
-    def __init__(self, config):
+    def __init__(self, config, reporter):
         conf = config["wrangler"]
         self.input_dir = conf['input_dir']
         self.ignore_files = conf['ignore']
-        self.data_formats = conf['data_formats']
         self.nocache = conf['nocache']
         self.lib_path = conf["lib_path"]
         self.config = config
         self.check_custom_default_class()
+        self.reporter = reporter
+
+        formats_allowed_by_config = conf['data_formats'] if 'data_formats' in conf else None
+        self.data_formats = self.register_parsers(formats_allowed_by_config)
+
+
+    def register_parsers(self, formats_allowed_by_config=None):
+        formats = []
+
+        if formats_allowed_by_config == []:
+            exit("You need at least one file format configured. Check your wrangler.yaml file.")
+
+        for cls in Core.Parser.__subclasses__():
+            
+            if hasattr(cls, "accepts"):
+                acceptable_types = []
+                parser = cls(self.input_dir, "")
+                for file_format in cls.accepts:
+                    if formats_allowed_by_config:
+                        if file_format in formats_allowed_by_config:
+                            acceptable_types.append(file_format)
+                            self.parsers[file_format] =  parser
+                    else:
+                        acceptable_types.append(file_format)
+                        self.parsers[file_format] =  parser
+
+                self.reporter.verbose("Created a %s to handle %s" % (cls.__name__, acceptable_types), "blue")
+                formats += acceptable_types
+
+        return formats
 
 
     def check_custom_default_class(self):
@@ -33,34 +63,13 @@ class Reader():
 
 
     def load_class(self, file_class):
-
         if file_class == None:
             file_class = self.default_class
         else:
-
             if not file_class in self.classes or file_class == self.default_class:
-
-                filename = "%s/%s.py" % (self.lib_path, file_class)
-
-                if not os.path.exists(filename):
-                    raise Exception("path %s doesn't exist in %s" % (file_class, self.lib_path))
-
-                directory, module_name = os.path.split(filename)
-                module_name = os.path.splitext(module_name)[0]
-
-                path = list(sys.path)
-                sys.path.insert(0, self.lib_path)
-
-                try:
-                    module = __import__(module_name)
-                finally:
-                    sys.path[:] = path # restore
-
-                for name in dir(module):
-                    if module_name.split(".")[0] == name:
-                        self.classes[name] = getattr(module, name)
-            
-
+                for cls in Core.Page.__subclasses__():
+                    if cls.__name__ == file_class:
+                        self.classes[file_class] = cls
         return self.classes[file_class]
     
 
@@ -171,21 +180,10 @@ class Reader():
 
 
     def load_parser_by_format(self, data_format):
-        """
-        Load parsers based on the file contents and cache 'em up so we can
-        re-use them.
-        """
-        if data_format:
-            if not data_format in self.parsers:
-                for parser in dir(Parsers):
-                    p =  getattr(Parsers, parser)
-                    if hasattr(p, "__bases__") and hasattr(p, "accepts"):
-                        if data_format == p.accepts:
-                            self.parsers[data_format] =  p(self.input_dir, "")
-            try: 
-                return self.parsers[data_format]
-            except:
-                raise Exception("No parser found for %s" % (data_format))
+        try: 
+            return self.parsers[data_format]
+        except:
+            self.reporter.verbose("No parser found for %s" % (data_format), "red")
 
 
     def new_item(self, shelf, filename):
@@ -202,18 +200,20 @@ class Reader():
         if (not shelf.has_key(filename)) or (shelf[filename].get_mtime() < mtime) or (self.nocache):
             
             # Check if custom class is set, otherwise make it a page... 
-            page_data = parser.load(filename);
+            if parser:
+                page_data = parser.load(filename);
 
-            if page_data:
-                page_view = None
+                if page_data:
+                    page_view = None
 
-                if "view" in page_data["meta"]:
-                    page_view = page_data["meta"]["view"]
+                    if "class" in page_data["meta"]:
+                        page_view = page_data["meta"]["class"]
 
-                PageClass = self.load_class(page_view)
-                new_page = PageClass(page_data, self.config)
-                shelf[filename] = new_page
-                print "\033[1;35mCaching \033[0m\033[2m%s\033[0m" % (filename)
-                return new_page
+                    PageClass = self.load_class(page_view)
+                    new_page = PageClass(page_data, self.config)
+                    shelf[filename] = new_page
+                    print "\033[1;35mCaching \033[0m\033[2m%s\033[0m" % (filename)
+                    return new_page
         else:
-            return shelf[filename]
+            if filename in shelf:
+                return shelf[filename]

@@ -5,34 +5,9 @@ import traceback
 import utilities as util
 import itertools
 from copy import deepcopy
-from unicodedata import normalize
 from blinker import signal
+import messages as messages
 
-"""
----------------------------------------------------------------------------------------------------
-Generally useful things
----------------------------------------------------------------------------------------------------
-
-"""
-
-_punct_re = re.compile(r'[\t !"#$%&\'()*\-/<=>?@\[\\\]^_`{|},.:]+')
-
-def slugify(text, delim=u'-'):
-    """Generates an slightly worse ASCII-only slug."""
-    result = []
-    for word in _punct_re.split(text.lower()):
-        word = normalize('NFKD', word).encode('ascii', 'ignore')
-        if word:
-            result.append(word)
-    return unicode(delim.join(result))
-
-# Takes a path, slugifies the filename, returns it.
-
-def clean_path(filename, ext):
-    path = os.path.dirname(filename)
-    basename = os.path.basename(filename)
-    clean_filename = slugify(u"%s" % (basename))
-    return os.path.join(path,clean_filename + os.extsep + ext)
 
 """
 ---------------------------------------------------------------------------------------------------
@@ -66,16 +41,17 @@ class Parser(object):
         try:
             return self.interpret(file_contents)
         except:
-            print "\033[31mCouldn't decode %s as %s\033[0m" % (filepath, self.accepts)
+            print messages.parser_decode_error % (filepath, self.accepts)
             traceback.print_exc()
 
-    def read_file(self, file_path):
+    def read(self, file_path):
         source_file = open(file_path, 'r')
         file_contents = ""
+
         try:
             file_contents = source_file.read().decode('utf8')
         except:
-            print "\033[31mTrouble reading %s\033[0m" % (source_file)
+            print messages.file_decode_error % (source_file)
             traceback.print_exc()
         return file_contents
     
@@ -108,14 +84,14 @@ class Parser(object):
         file_path = os.path.join(self.project_root, filepath)
         relative_path = file_name.replace(self.input_dir+"/", "")     
         mtime = os.path.getmtime(filepath)
-        file_contents = self.read_file(file_path)
+        file_contents = self.read(file_path)
+
 
         if file_extension:
-
-            if file_extension == ".%s" % (self.accepts):
+            if file_extension.replace(os.extsep, "") in self.accepts:
                 return self.parse(file_path, file_name, relative_path, file_contents, mtime)
             else:
-                print "%s does not parse %s, expected .%s. Check the 'data_format' in wrangler.json" % (self.__class__.__name__, file_extension, self.accepts)
+                print messages.parser_error % (self.__class__.__name__, file_extension, self.accepts)
 
 
 
@@ -210,13 +186,8 @@ class Node(object):
 
         directories = [d for d in self.get_parent().get_children() if d.tag == 'dir']
         
-        # print "child pages for %s" % (self.path)
-
         for node in directories:
             index = node.get_child("index")
-
-            # print "\t", node.path
-
 
             if index:
                 children.append(index)
@@ -463,7 +434,7 @@ class Writer(object):
         return None
 
     def generate_output_path(self, filename):
-        relative_output_path = clean_path(filename, self.output_file_ext)
+        relative_output_path = util.clean_path(filename, self.output_file_ext)
         path = os.path.join(self.output_path, relative_output_path)
         path_no_ext = os.path.join(self.output_path, filename + os.extsep)
         return path, relative_output_path, path_no_ext
@@ -491,7 +462,7 @@ class Writer(object):
             siggy.send('item', item=item, path=filename)
 
         except:
-            print "\033[31mCouldn't write %s\033[0m" % (filename)
+            print messages.file_write_error % (filename)
             traceback.print_exc()
             self.reporter.log_item_saved(item.get_file_path(), item.get_template(), 0)
             return False
@@ -517,7 +488,7 @@ class Reporter(object):
         return None
 
     def print_stdout(self, original_path, new_path, template):
-        self.verbose("\033[1;32mBuilding \033[0m\033[2m%s\033[0m > \033[34m%s \033[2m[%s]\033[0m" % (original_path, new_path, template))
+        self.verbose(messages.render_success % (original_path, new_path, template))
 
 
     def update_log(self, items, last_modified_time):
@@ -527,7 +498,7 @@ class Reporter(object):
         for item in items:
             print>>file, "%s, %s, %s" % (item[0], item[2], item[1])
 
-        self.verbose("Wrote log to: \033[32m%s\033[0m" % (self.config['compiled_templates_log']))
+        self.verbose(messages.write_log % (self.config['compiled_templates_log']))
     
     def log_item_saved(self, path, template, result):
         self.log_data.append([path, template, result])
@@ -582,16 +553,16 @@ class Reporter(object):
             msg = self.pretty(status, message)
         print msg
 
-    def verbose(self, message):
+    def verbose(self, message, status=None):
         if self.config["verbose"] == True:
-            print message
+            self.log(message, status)
 
 
-# """
-# ---------------------------------------------------------------------------------------------------
-# Utilities
-# ---------------------------------------------------------------------------------------------------
-# """
+"""
+---------------------------------------------------------------------------------------------------
+Decoration
+---------------------------------------------------------------------------------------------------
+"""
 
 def template_filter(inner):
     jinja_filter = signal('template_filter')
@@ -602,7 +573,6 @@ def template_filter(inner):
 
     return sig
 
-
 def extension(inner):
     wranglerExtension = signal('wranglerExtension')
 
@@ -612,25 +582,50 @@ def extension(inner):
 
     return sig
 
+def before_render(inner):
+    directive = signal('wranglerBeforeRender')
 
+    @directive.connect
+    def sig(sender, **kwargs):
+        return inner(**kwargs)
 
+    return sig
 
-# """
-# ---------------------------------------------------------------------------------------------------
-# Utilities
-# ---------------------------------------------------------------------------------------------------
-# """
+def after_render(inner):
+    directive = signal('wranglerAfterRender')
 
-# class Extension(object):
-#     """
-#     Simple implementation of extensions.
-#     """
-#     default = {
-#         "options":{}
-#     }
-#     def __init__(self, config=None, node_graph=None, reporter=None):
-#         self.config = config if config != None else self.default
-#         self.node_graph = node_graph
-#         self.reporter=reporter
+    @directive.connect
+    def sig(sender, **kwargs):
+        return inner(**kwargs)
+
+    return sig
+
+def load_item(inner):
+    directive = signal('wranglerLoadItem')
+
+    @directive.connect
+    def sig(sender, **kwargs):
+        return inner(**kwargs)
+
+    return sig
+
+def render_item(inner):
+    directive = signal('wranglerRenderItem')
+
+    @directive.connect
+    def sig(sender, **kwargs):
+        return inner(**kwargs)
+
+    return sig
+
+def save_item(inner):
+    directive = signal('wranglerBeforeSaveItem')
+
+    @directive.connect
+    def sig(sender, **kwargs):
+        return inner(**kwargs)
+
+    return sig
+
 
 

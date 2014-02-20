@@ -41,10 +41,16 @@ class SiteMap(object):
                 else:
                     if not key.is_index:
                         cargo = key.get_cargo()
-                        data.append({"data": key.get_cargo().get_properties(), "children": []})
-                    else:
-                        if not node.parent:  
+                        try:
                             data.append({"data": key.get_cargo().get_properties(), "children": []})
+                        except:
+                            self.reporter.verbose("Couldn't include %s in sitemap" % (key.path), "red")
+                    else:
+                        if not node.parent:
+                            try:
+                                data.append({"data": key.get_cargo().get_properties(), "children": []})
+                            except:
+                                self.reporter.verbose("Couldn't include %s in sitemap" % (key.path), "red")
         return data
         
     def run(self):

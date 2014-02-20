@@ -10,7 +10,7 @@ import messages as messages
 class NewProject(object):
     
     config_path = "wrangler.yaml"
-    directories = ["content", "templates", "var", "www"]
+    directories = ["content", "templates", "var", "www", "lib"]
     default_files = [
             {
                 "path": "content/index.yaml",
@@ -23,6 +23,10 @@ class NewProject(object):
             {
                 "path": "wrangler.yaml",
                 "content": defaults.config_template()
+            },
+            {
+                "path": "lib/examples.py",
+                "content": defaults.lib_template()
             }
         ]
 

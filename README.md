@@ -73,7 +73,7 @@ my-site/
 
 ## Configuration
 
-The editable options for the wrangler are saved in the `wrangler.json` file in your project root.
+The editable options for the wrangler are saved in the `wrangler.yaml` file in your project root.
 
 Crack it open, and you'll find three nodes: `wrangler`, `site` and `extensions`
 
@@ -94,6 +94,8 @@ images path, you can call `{{ site.paths.images }}` and save yourself some typin
 {# Hey, it's those handy vars I set in my site_vars #}
 {{ site.paths.css }}
 ```
+
+The yaml file documents all the options and what they do. 
 
 
 
@@ -231,46 +233,48 @@ They're proccessed in the order they appear in your modules, and can modify the
 incoming objects directly. They've also got access to wrangler's `config`, `renderer` and `reporter`. 
 
 
-
 ```python
-from blinker import signal
 
-before_render = signal('wranglerBeforeRender')
-after_render = signal('wranglerAfterRender')
+from wrangler.Core import before_render, after_render, load_item, save_item, render_item
 
-# More hooks:
-# wranglerLoadItem
-# wranglerBeforeSaveItem
-# wranglerOnSaveItem
-# wranglerRenderItem
-
-@before_render.connect
-def my_hook(sender, **kwargs):
+@before_render
+def before(**kw):
     nodes = kw['nodes']
     config = kw['config']
     renderer = kw['renderer']
     reporter = kw['reporter']
-    return "This is my basic hook!"
+    print "Hey, I'm a hook!"
+    return "foo!"
 
+@after_render
+def after(**kw):
+    nodes = kw['nodes']
+    config = kw['config']
+    renderer = kw['renderer']
+    reporter = kw['reporter']
+    print "Hey, I'm a hook!"
+    return ""
 ```
 
 ### Extensions
 
-Extensions are python scripts that return handy data to your templates `extensions` dictionary in your templates.
+Extensions are python scripts that return handy data to your templates' `extensions` dictionary.
 
-For instance, this banal script:
+Let's take this little script:
 
 ```python
 # lib/my_extensions.py
 from wrangler.Core import extension
 
-
 @extension
 def my_extension(sender, **kwargs):
+    # Add some config to your YAML file and access it here: 
+    config = kwargs['config']['extensions']['my_extension']
     return "This is my basic extension!"
 
 ```
-Lets you do this in your template:
+
+Will be accessible from your template at `extensions.YOUR_EXTENSION_NAME`:
 
 ```jinja
 <em class="extension">

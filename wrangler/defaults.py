@@ -5,6 +5,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 content = "defaults/index.yaml"
 template = "defaults/template.j2"
 config = "defaults/wrangler.yaml"
+lib = "defaults/examples.py"
 
 def load_defaults():
     return yaml.load(file(config_template(), 'r'))
@@ -17,3 +18,6 @@ def template_template():
 
 def config_template():
     return "%s/%s" % (cwd, config)
+
+def lib_template():
+    return "%s/%s" % (cwd, lib)

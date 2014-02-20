@@ -76,11 +76,11 @@ class Reader():
     def init_cache(self):
         if (self.nocache):
             try:
-                os.remove("wrangler_cache.db")
+                os.remove(self.config['wrangler']['build_cache_file'])
             except OSError:
                 pass
 
-        return shelve.open("wrangler_cache") 
+        return shelve.open(self.config['wrangler']['build_cache_file']) 
     
     def save_cache(self, shelf):
         try:
@@ -165,7 +165,7 @@ class Reader():
     def fetch(self):
         shelf = self.init_cache()
 
-        self.reporter.verbose(messages.start_render % (self.data_formats), "blue")
+        self.reporter.log(messages.start_render % (self.data_formats), "blue")
 
         self.graph = Core.NodeGraph()
         root_node = self.dir_as_tree(self.input_dir)

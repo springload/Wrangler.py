@@ -9,7 +9,7 @@ If you've removed pages, or included a template dynamically, try --force\
 
 built_n_of_n = "Built %s of %s pages in \"%s\" directory"
 	
-start_render = "Digesting \"%s\" files from \"%s\""
+start_render = "Digesting \"%s\" files"
 render_success = "\033[1;32mBuilding \033[0m\033[2m%s\033[0m > \033[34m%s \033[2m[%s]\033[0m"
 
 watch_start = "Listening for changes in '%s', '%s'"
@@ -29,3 +29,7 @@ already_exists = "Couldn't create '%s', it already exists"
 
 write_log = "Wrote log to: \033[32m%s\033[0m"
 
+unpickle_error = """\
+Couldn't load %s from the cache. Try running `wrangler clean`\
+then `wrangler build`, or build again with the `--nocache` option.
+"""

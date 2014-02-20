@@ -5,7 +5,7 @@ def readme():
         return f.read()
 
 setup(name='wrangler',
-	version='0.1.7.2',
+	version='0.1.7.5',
 	description='A pythonic static site generator',
 	long_description=readme(),
 	url='http://github.com/springload/Wrangler.py',
@@ -13,6 +13,8 @@ setup(name='wrangler',
 	author_email='hello@springload.co.nz',
 	license='MIT',
 	packages=['wrangler'],
+	package_dir={'wrangler': 'wrangler'},
+	package_data={'wrangler': ['defaults/*']},
 	install_requires=[
 		'markdown',
 		'jinja2',

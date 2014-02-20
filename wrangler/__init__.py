@@ -160,6 +160,7 @@ class Wrangler(object):
                 serve.BasicServer(args.path, self._reporter, port)
             
             if args.subparser == "build":
+                self._reporter.log("Wrangling %s" % (self.config['wrangler']['input_dir']),"green")
                 self.render()
 
             if args.subparser == "watch":
@@ -201,7 +202,6 @@ class Wrangler(object):
         self._reader = Reader.Reader(self.config, self._reporter)
         self._writer = Core.Writer(conf["output_dir"], conf["output_file_extension"], self._reporter)
         self._renderer = renderer.JinjaStaticRenderer(self.config, self._reporter, self._writer)
-        self._reporter.log(messages.start_render % (self._reader.data_formats, conf["input_dir"]), "blue")
         self.graph = self._reader.fetch()
 
         total_nodes = 0

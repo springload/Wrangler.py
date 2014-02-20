@@ -165,6 +165,8 @@ class Reader():
     def fetch(self):
         shelf = self.init_cache()
 
+        self.reporter.verbose(messages.start_render % (self.data_formats), "blue")
+
         self.graph = Core.NodeGraph()
         root_node = self.dir_as_tree(self.input_dir)
         self.graph.root(root_node)
@@ -197,7 +199,15 @@ class Reader():
             print "Oops! Couldn't load \"%s\". Check the path exists." % (filename)
             return False
 
-        if (not shelf.has_key(filename)) or (shelf[filename].get_mtime() < mtime) or (self.nocache):
+        if shelf.has_key(filename):
+            try:
+                last_modified = shelf[filename].get_mtime()
+            except:
+                self.reporter.log(messages.unpickle_error % (filename), "red")
+                exit()
+
+
+        if (not shelf.has_key(filename)) or (last_modified < mtime) or (self.nocache):
             
             # Check if custom class is set, otherwise make it a page... 
             if parser:

@@ -22,10 +22,10 @@ class Reader():
         self.nocache = conf['nocache']
         self.lib_path = conf["lib_path"]
         self.config = config
-        self.check_custom_default_class()
         self.reporter = reporter
-
         formats_allowed_by_config = conf['data_formats'] if 'data_formats' in conf else None
+
+        self.check_custom_default_class()
         self.data_formats = self.register_parsers(formats_allowed_by_config)
 
 
@@ -56,22 +56,22 @@ class Reader():
 
 
     def check_custom_default_class(self):
-        if "lib_path" in self.config:
-            filename = "%s/%s.py" % (self.lib_path, self.default_class)
-            if os.path.exists(filename):
-                self.load_class(self.default_class)
+        for cls in Core.Page.__subclasses__():
+            if cls.__name__ == self.default_class:
+                self.classes[self.default_class] = cls
+                self.reporter.verbose("Set default class to new default subclass '%s'" % (cls.__name__), "blue")
 
+           
 
     def load_class(self, file_class):
-        if file_class == None:
-            file_class = self.default_class
-        else:
-            if not file_class in self.classes or file_class == self.default_class:
-                for cls in Core.Page.__subclasses__():
-                    if cls.__name__ == file_class:
-                        self.classes[file_class] = cls
+        if not file_class in self.classes:
+            for cls in Core.Page.__subclasses__():
+                if cls.__name__ == file_class:
+                    self.classes[file_class] = cls
+                    self.reporter.verbose("Loaded class %s" % (file_class), "blue")
+
         return self.classes[file_class]
-    
+
 
     def init_cache(self):
         if (self.nocache):
@@ -204,12 +204,12 @@ class Reader():
                 page_data = parser.load(filename);
 
                 if page_data:
-                    page_view = None
+                    page_classname = self.default_class
 
                     if "class" in page_data["meta"]:
-                        page_view = page_data["meta"]["class"]
+                        page_classname = page_data["meta"]["class"]
 
-                    PageClass = self.load_class(page_view)
+                    PageClass = self.load_class(page_classname)
                     new_page = PageClass(page_data, self.config)
                     shelf[filename] = new_page
                     print "\033[1;35mCaching \033[0m\033[2m%s\033[0m" % (filename)

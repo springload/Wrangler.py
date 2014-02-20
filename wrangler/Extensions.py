@@ -57,8 +57,6 @@ class SiteMap(object):
         if "webroot" in self.config:
             self.webroot = self.config["webroot"]
         res = self.process_node(self.nodes.tree())
-        # p = pprint.PrettyPrinter(depth=12)
-        # p.pprint(res)
         return res
 
 @extension

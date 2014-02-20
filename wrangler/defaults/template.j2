@@ -53,12 +53,14 @@
         {{ data.content|markdown }}
 
         <div class="data">
-            <h5>These things are available in your templates:</h5>
+            <h5>These variables are available in your templates:</h5>
             <h3>meta</h3>
             {{ iterate(meta) }}
             <h3>data</h3>
             {{ iterate(data) }}
             <h3>site</h3>
+            {{ iterate(site) }}
+            <h3>extensions</h3>
             {{ iterate(site) }}
         </div>
         

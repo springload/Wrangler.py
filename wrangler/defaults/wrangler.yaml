@@ -1,0 +1,113 @@
+# ----------------------------------------------------------------------------- 
+# Wrangler config
+# ----------------------------------------------------------------------------- 
+# For more information, check out https://github.com/springload/Wrangler.py/
+
+wrangler: 
+
+    # -------------------------------------------------------------------------
+    # General config
+    # -------------------------------------------------------------------------
+    # Template directory relative to your project root
+    templates_dir: templates
+
+    # Default template to load if no template is specified for a page
+    default_template: template.j2
+
+    # Default output file extension. Note this can be overwritten in the content
+    # by specifying 'output_file_extension' in the 'meta' area
+    output_file_extension: html
+
+    # Supported data formats. Ensure a parser is registered for each type.
+    # More information about parsers can be found in the link at the top of the file.
+    data_formats: ['yaml', 'json', 'md']
+
+    # Ignore hidden files, and files starting with underscores
+    ignore: ['.','_']
+
+
+    # -------------------------------------------------------------------------
+    # Command line flags 
+    # -------------------------------------------------------------------------
+    # Prints all the internal plumbing output to stdout
+    verbose: false
+
+    # Always force all pages to be rendered
+    force: false
+
+    # Run without the cache (useful for developing custom page classes, to prevent them
+    # from being cached each run).
+    nocache: false
+
+
+    # -------------------------------------------------------------------------
+    # Geeky stuff
+    # -------------------------------------------------------------------------
+    # The location of the template cache zip file. 
+    # Ensure the var path exists and is writeable by the user
+    build_cache_file: var/build.cache
+    compiled_templates_file: var/jinja
+    compiled_templates_log: var/jinja.log
+
+    # Custom methods/classes go in the lib directory, for instance
+    # lib/Page.py or lib/Extensions.py or lib/Filters.py
+    lib_path: lib
+
+
+
+# ----------------------------------------------------------------------------- 
+# Extensions
+# ----------------------------------------------------------------------------- 
+extensions:
+    # Sitemap generates a tree structure of your entire site, relative to the
+    # webroot specified here 
+    # 
+    #   {{ extensions.sitemap }}
+    # 
+    # We leave it up to you to iterate over the sitemap and print everything in
+    # a pretty manner, but this gist might get you started:
+    # https://gist.github.com/joshbarr/111
+
+    sitemap: 
+        webroot: /
+
+    # Cachebuster creates a timestamp so you can append it to your asset paths,
+    # if you want:
+    # 
+    #   <img src='path-to-my-image.png?{{ extensions.cachebuster }}' />
+    #
+    cachebuster: 
+
+    # Fileinfo allows you to pass the properties of certain files back to your
+    # template, for instance the filesize of a downloadable PDF or image. 
+    fileinfo: 
+        directory: www/assets
+        filetypes: ['pdf']
+        webroot: www
+
+    # Add your custom extension config here:
+    # myextension:
+    #   cheese: cheddar
+    #   animal: duck
+    #   shape: circle
+    # 
+    # Access it in your extension via config['extensions']['myextension']
+    # The `extensions:` object is passed through to any extensions you create,
+    # so you can keep all your customisation here. Handy!  
+
+
+# ----------------------------------------------------------------------------- 
+# Site variables
+# ----------------------------------------------------------------------------- 
+# Your website's variables, available in your templates by calling
+# {{ site.paths.css }} for instance.
+site: 
+    paths: 
+        css: assets/css
+        js: assets/js
+        assets: assets
+        images: assets/images
+        webroot: www
+        app: app
+        content: content
+

@@ -1,21 +1,28 @@
 import os
 import sys
 import defaults
-import json
+import yaml
 import errno
+import shutil
+import messages as messages
 
 
 class NewProject(object):
-    config_path = "wrangler.json"
+    
+    config_path = "wrangler.yaml"
     directories = ["content", "templates", "var", "www"]
     default_files = [
             {
                 "path": "content/index.yaml",
-                "content": defaults.yaml
+                "content": defaults.content_template()
             },
             {
                 "path": "templates/template.j2",
-                "content": defaults.template
+                "content": defaults.template_template()
+            },
+            {
+                "path": "wrangler.yaml",
+                "content": defaults.config_template()
             }
         ]
 
@@ -23,13 +30,9 @@ class NewProject(object):
         self.path = path
         self.abspath = os.path.abspath(self.path)
         self.reporter = reporter
-
-        self.reporter.log("Setting up a new project in '%s'" % (self.abspath), "green")
-        
+        self.reporter.log(messages.create_project % (self.abspath), "green")
         self.create_directory_structure()
         self.create_default_files()
-        self.safe_default_config()
-
         return None
 
     def ensure_path_exists(self, path):
@@ -40,16 +43,16 @@ class NewProject(object):
             if exception.errno != errno.EEXIST:
                 raise
             else:
-                self.reporter.log("Couldn't create '%s', it already exists " % (path), "red")
+                self.reporter.log(messages.already_exists % (path), "red")
 
     def create_default_files(self):
         for f in self.default_files:
             safe = self.safe_path(f["path"])
             if not os.path.exists(safe):
-                self.write_file(safe, f["content"])
-                self.reporter.log("Created '%s'" % (safe), "green")
+                shutil.copy2(f["content"], f["path"])
+                self.reporter.log(messages.file_created % (safe), "green")
             else:
-                self.reporter.log("Couldn't create '%s', it already exists " % (safe), "red")
+                self.reporter.log(messages.already_exists % (safe), "red")
 
 
     def create_directory_structure(self):
@@ -63,13 +66,4 @@ class NewProject(object):
 
     def safe_path(self, path):
         return os.path.join(self.abspath, path)
-
-    def safe_default_config(self):
-        config = self.safe_path(self.config_path)
-        if not os.path.exists(config):
-            with open(config, 'w') as outfile:
-                outfile.write(json.dumps(defaults.defaults, sort_keys=True, indent=4))
-                self.reporter.log("Created '%s'" % (config), "green")
-        else:
-            self.reporter.log("Couldn't create '%s', it already exists " % (config), "red")
 

@@ -436,7 +436,7 @@ Generates templated content to pass to the writer
 """
 class Renderer(object):
     def __init__(self, config, reporter, writer):
-        self.config = config
+        self.config = config["wrangler"]
         self.reporter = reporter
         self.writer = writer
         self.init()
@@ -510,8 +510,9 @@ Shares our findings with the rest of the class
 
 """
 class Reporter(object):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, config, config_path):
+        self.config = config["wrangler"]
+        self.config_path = config_path
         self.log_data = []
         return None
 
@@ -549,8 +550,8 @@ class Reporter(object):
         Force a re-render if the config file has changed (global paths may be invalid, etc..)
         """
         mtime = 0
-        if os.path.exists(self.config['config_path']):
-            mtime = os.path.getmtime(self.config['config_path'])
+        if os.path.exists(self.config_path):
+            mtime = os.path.getmtime(self.config_path)
         return mtime
 
     def set_last_build_time(self, update_time=None):
@@ -584,6 +585,33 @@ class Reporter(object):
     def verbose(self, message):
         if self.config["verbose"] == True:
             print message
+
+
+# """
+# ---------------------------------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------------------------------
+# """
+
+def template_filter(inner):
+    jinja_filter = signal('template_filter')
+
+    @jinja_filter.connect
+    def sig(sender, **kwargs):
+        return inner
+
+    return sig
+
+
+def extension(inner):
+    wranglerExtension = signal('wranglerExtension')
+
+    @wranglerExtension.connect
+    def sig(sender, **kwargs):
+        return inner
+
+    return sig
+
 
 
 

@@ -2,30 +2,41 @@ import os
 import sys
 import argparse
 import json
+import yaml
 import importlib
+import inspect
+from blinker import signal
+
 import Reader as Reader
 import JinjaStaticRenderer as renderer
 import Core as Core
 import Extensions as Extensions
-import inspect
 import defaults as defaults
 import NewProject as generate
 import BasicServer as serve
 import Watcher as watch
-from blinker import signal
+import messages as messages
 
+class Wrangler(object):
 
-class Wrangler():
-
-    defaults = defaults.defaults
+    defaults = defaults.load_defaults()
 
     # Default config just loads the YAML config file
     config = {
-        'config_path':'wrangler.json',
+        "wrangler": {
+            "verbose": False,
+            "force": False,
+            "nocache": False,
+            "input_dir": False,
+            "output_dir": False
+        },
+        "site": {},
+        "extensions": {}
     }
 
-    def __init__(self):
-        return None
+    # User config path 
+    config_path = 'wrangler.yaml'
+    extension_results = {}
 
     # Hmm it turns out there's not going to be any global options at all, the whole app
     # works best as a series of subcommands with very independent options.
@@ -97,46 +108,43 @@ class Wrangler():
         parser_watch.add_argument("-v", "--verbose", action="store_true",
                             help='\033[34mPrint all the plumbing\033[0m')
         
-
         parser_clean = subparsers.add_parser('clean', help='clean help')
-
-
         return parser.parse_args(args)
 
 
     def update_config(self, args):
         userConfig = None
-        # If a config file is specified, load all config from there instead
+
+        # Load the defaults
+        self.config.update( self.defaults )
+
+        # Check for custom config in the arguments
         if (hasattr(args, "config")):
-            self.config['config_path'] = args.config
+            if args.config != None:
+                self.config_path = args.config
 
-        self.config.update( self.defaults["generator_config"] )
-
-        _path = u"%s" % (self.config['config_path'])
-        self.config['config_path'] = _path 
+        # Load custom config if it exists
+        _path = u"%s" % (self.config_path)
 
         if os.path.exists( _path ):
-            userConfig = json.load( file(_path) )
-            self.config.update( userConfig["generator_config"] )
+            userConfig = yaml.load( file(_path) )
+            self.config.update( userConfig )
 
-        # Apply command line flags if set, ignore Nones.
-        self.config.update((k, v) for k, v in args.__dict__.iteritems() if v is not None)
+        # # Apply command line flags if set, ignore Nones.
+        self.config["wrangler"].update((k, v) for k, v in args.__dict__.iteritems() if v is not None)
         
-        if userConfig:
-            # The site vars object is mapped to an item in the json object
-            self.config["site_vars"] = userConfig[userConfig["generator_config"]["site_vars"]]
-        else:
-            self.config["site_vars"] = {}
-
-        if "lib_path" in self.config:
-            self.load_classes(self.config["lib_path"])
+        # If there's a library path, load all the modules
+        if "lib_path" in self.config["wrangler"]:
+            self.load_classes(self.config["wrangler"]["lib_path"])
 
 
     def main(self, args=None):
         args = self.parse_args(args)
 
+        self.update_config(args)
+
         # Reporter only really needs to check the verbosity level
-        self._reporter = Core.Reporter(self.config)
+        self._reporter = Core.Reporter(self.config, self.config_path)
 
         if "subparser" in args:
             
@@ -148,27 +156,24 @@ class Wrangler():
                 port = None
                 if args.port:
                     port = args.port 
-
                 serve.BasicServer(args.path, self._reporter, port)
             
             if args.subparser == "build":
-                self.update_config(args)
                 self.render()
 
             if args.subparser == "watch":
-                self.update_config(args)
 
                 watch_init = signal('watch_init')
                 watch_change = signal('watch_change')
                 
                 watch_init.connect(self.on_watch_ready)
                 watch_change.connect(self.on_watch_change)
-                watcher = watch.Watcher(self)
+                watcher = watch.Watcher(self.config["wrangler"]["input_dir"], self.config["wrangler"]["templates_dir"])
 
             if args.subparser == "clean":
-                self.update_config(args)
-                files = [self.config["compiled_templates_file"], self.config["build_cache_file"]]
-                # try:
+                # self.update_config(args)
+                files = [self.config["wrangler"]["compiled_templates_file"], self.config["wrangler"]["build_cache_file"]]
+                
                 for f in files:
                     if os.path.exists(f):
                         try:
@@ -180,23 +185,22 @@ class Wrangler():
                 exit()
 
         else:
-            self._reporter.log("No action selected, try 'create', 'serve', or 'build'. Still stuck, try --help for more info", "red")
+            return None
 
     def on_watch_ready(self, sender):
-        self._reporter.log("Listening for changes in '%s', '%s'" % (self.config['input_dir'], self.config['templates_dir']), "blue")
+        conf = self.config["wrangler"]
+        self._reporter.log(messages.watch_start % (conf['input_dir'], conf['templates_dir']), "blue")
 
     def on_watch_change(self, sender):
-        self._reporter.log("Change detected in %s" % (sender.src_path), "green")
+        self._reporter.log(messages.watch_change % (sender.src_path), "green")
         self.render()
 
-
     def render(self):
-       
+        conf = self.config["wrangler"]
         self._reader = Reader.Reader(self.config)
-        self._writer = Core.Writer(self.config["output_dir"], self.config["output_file_extension"], self._reporter)
+        self._writer = Core.Writer(conf["output_dir"], conf["output_file_extension"], self._reporter)
         self._renderer = renderer.JinjaStaticRenderer(self.config, self._reporter, self._writer)
-
-        self._reporter.log("Digesting \"%s\" files from \"%s\"" % (self.config["data_format"], self.config["input_dir"]), "blue")
+        self._reporter.log(messages.start_render % (conf["data_formats"], conf["input_dir"]), "blue")
         self.graph = self._reader.fetch()
 
         total_nodes = 0
@@ -208,6 +212,8 @@ class Wrangler():
                     cargo.set_output_path(self._writer.generate_output_path(cargo.relpath()))
                 total_nodes += 1
 
+        
+
         before = signal('wranglerBeforeRender')
         result = before.send('wrangler',
                     config=self.config,
@@ -218,6 +224,7 @@ class Wrangler():
         self.process_extensions()
         rendered = 0
         
+
         for key, node in self.graph.all().items():
             if node.tag == 'file':
                 # Leaky boat.
@@ -240,9 +247,17 @@ class Wrangler():
                         
                         cargo.set_related_nodes(related)
 
-                    if self._writer.save(self._renderer.render(cargo)):
+                    # The important bit that does the saving and the rendering
+                    if self._writer.save(
+                        self._renderer.render(
+                            cargo,
+                            meta = cargo.get_metadata(),
+                            data = cargo.get_content(),
+                            site = self.config["site"],
+                            extensions = self.extension_results
+                            )
+                        ):
                         rendered += 1
-
                     cargo.cleanup()
                     del cargo
     
@@ -255,11 +270,10 @@ class Wrangler():
                     nodes=self.graph)
         
         if rendered > 0:
-            self._reporter.log("Built %s of %s pages in \"%s\" directory " % (rendered, total_nodes, self.config["output_dir"]), "green")
+            self._reporter.log(messages.built_n_of_n % (rendered, total_nodes, conf["output_dir"]), "green")
             self._reporter.set_last_build_time()
         else:
-             self._reporter.log("Hmm... nothing's changed in \"%s\" or \"%s\" since last time.\nIf you've removed pages, or included a template dynamically, try --force" % (self.config["input_dir"], self.config["templates_dir"]), "red")
-
+             self._reporter.log(messages.nochange % (conf["input_dir"], conf["templates_dir"]), "red")
 
 
     def load_classes(self, views):
@@ -286,18 +300,20 @@ class Wrangler():
                 sys.path[:] = path 
 
 
-
     def process_extensions(self):
         """
         Load extensions from the core and import any from the site/lib directory too
         """
         sig = signal("wranglerExtension")
-        results = sig.send('wrangler', config=self.config, reporter=self._reporter, nodes=self.graph)
+        results = sig.send('wrangler')
 
+        # Results returns a list of tuples.
+        # First one will be the decorator, second will be the fn
         for result in results:
-            responder = result[0]
-            self.config["site_vars"][responder.__name__] = result[1]
+            responder = result[1]
+            self.extension_results[responder.__name__] = responder(config=self.config, reporter=self._reporter, nodes=self.graph)
 
+        # print self.extension_results
 
 def start():
     sys.exit(Wrangler().main())

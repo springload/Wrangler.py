@@ -31,27 +31,6 @@ def markdown_filter(value):
 
 
 
-def load_custom_filters(path):
-    classfiles = [os.path.join(dirpath, f)
-        for dirpath, dirnames, files in os.walk(path)
-        for f in files if f.endswith('Filters.py')]
-
-    path = list(sys.path)
-    sys.path.insert(0, path)
-
-    moduleNames = []
-
-    for f in classfiles:
-        moduleNames.append(os.path.basename(f.replace(".py", "")))
-
-    if len(moduleNames) > 0:
-        try:
-            map(__import__, moduleNames);
-        finally:
-            # restore the syspath
-            sys.path[:] = path 
-
-
 
 class JinjaStaticRenderer(Core.Renderer):
 
@@ -72,19 +51,15 @@ class JinjaStaticRenderer(Core.Renderer):
         self.env.filters['rst'] = rst_filter
 
         # Load up some custom, project specific filters
-        if "lib_path" in self.config and os.path.exists(self.config["lib_path"]):
-            load_custom_filters(self.config["lib_path"])
-            customFilters = sys.modules["Filters"] if "Filters" in sys.modules else None
+        # if "lib_path" in self.config and os.path.exists(self.config["lib_path"]):
 
+        sig = signal("template_filter")
+        results = sig.send("renderer", env=self.env, config=self.config)
 
-            if customFilters:
-                items = [customFilters.__dict__.get(a) for a in dir(customFilters) if isinstance(customFilters.__dict__.get(a), types.FunctionType)]
+        for filter_function in results:
+            name = filter_function[1].__name__
+            self.env.filters[name] = filter_function[1]
 
-                for fn in items:
-                    _name = fn.__name__.lower()
-                    if _name.startswith("filter_"):
-                        _name = _name.replace("filter_", "")
-                        self.env.filters[_name] = fn
 
         self.template_trees = {}
         self.template_modified_times = {}
@@ -145,14 +120,14 @@ class JinjaStaticRenderer(Core.Renderer):
         return self.template_trees[template]
 
 
-    def render(self, item):
+    def render(self, item, **kwargs):
         template_name = item.get_template()
         template = self.load_template(template_name)
 
         if template and (self.should_render_item(item, template_name)):
             sig = signal("wranglerRenderItem")
-            sig.send('item', item=item, template_name=template_name)
-            return (template.render(data=item.get_content(), meta=item.get_metadata(), site=self.config["site_vars"]), item)
+            result = sig.send('item', item=item, template_name=template_name)
+            return (template.render(kwargs), item)
 
         return (False, item)
 

@@ -12,13 +12,9 @@ class WatchEventHandler(FileSystemEventHandler):
             sig = signal('watch_change')
             sig.send(event)
 
+
 class Watcher(object):
-    def __init__(self, wrangler):
-
-        config = wrangler.config
-
-        input_dir = config["input_dir"]
-        templates_dir = config["templates_dir"]
+    def __init__(self, input_dir, templates_dir):
 
         paths = [input_dir, templates_dir]
         threads = []
@@ -26,7 +22,6 @@ class Watcher(object):
         try:
             observer = Observer()
             event_handler = WatchEventHandler()
-            event_handler.wrangler = wrangler
 
             for i in paths:
                 targetPath = str(i)

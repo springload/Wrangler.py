@@ -2,6 +2,8 @@ import yaml
 import json
 import Core
 
+
+
 class YamlParser(Core.Parser):
     accepts = "yaml"
 
@@ -14,3 +16,5 @@ class JsonParser(Core.Parser):
 
     def interpret(self, file_contents):
         return json.load(file_contents)
+
+

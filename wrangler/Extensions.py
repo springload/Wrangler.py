@@ -1,56 +1,72 @@
 import pprint 
 import time 
 import os
-from blinker import signal
+from wrangler.Core import extension
 
-extension = signal("wranglerExtension")
 
 class SiteMap(object):
     def __init__(self, config, reporter, nodes):
         self.config = config
         self.reporter = reporter
         self.nodes = nodes
+        self.webroot = "/"
+
+    def get_index(self, node):
+        index = node.get_child("index")
+        index_data = None
+        if index:
+            cargo = index.get_cargo()
+            if cargo:   
+                index_data = cargo.get_properties()
+        return index_data
 
     def process_node(self, node):
         data = []
-        for key in node.children:
-            if key.tag == "dir":
-                index = key.get_child("index")
-                index_data = None
-                if index:
-                    cargo = index.get_cargo()
-                    if cargo:   
-                        index_data = cargo.get_properties()
 
-                data.append({"data": index_data, "children": self.process_node(key)})
-            else:
-                if not key.is_index:
-                    cargo = key.get_cargo()
-                    if cargo:
-                        data.append({"data": key.get_cargo().get_properties(), "children": {}})
+        if node.tag == "dir":
+
+            for key in node.children:
+
+                if key.tag == "dir":
+                    index = key.get_child("index")
+                    index_data = None
+
+                    if index:
+                        cargo = index.get_cargo()
+                        if cargo:   
+                            index_data = cargo.get_properties()
+
+                    data.append({"data": index_data, "children": self.process_node(key)})
+                    
+                else:
+                    if not key.is_index:
+                        cargo = key.get_cargo()
+                        data.append({"data": key.get_cargo().get_properties(), "children": []})
+                    else:
+                        if not node.parent:  
+                            data.append({"data": key.get_cargo().get_properties(), "children": []})
         return data
         
     def run(self):
-        self.webroot = self.config["webroot"]
+        if "webroot" in self.config:
+            self.webroot = self.config["webroot"]
         res = self.process_node(self.nodes.tree())
-        if "debug" in self.config and self.config["debug"] == True:
-            p = pprint.PrettyPrinter(depth=12)
-            p.pprint(res)
+        # p = pprint.PrettyPrinter(depth=12)
+        # p.pprint(res)
         return res
 
-
-@extension.connect
-def sitemap(sender, **kwargs):
+@extension
+def sitemap(**kwargs):
     return SiteMap(kwargs["config"]["extensions"]["sitemap"], kwargs["reporter"], kwargs["nodes"]).run()
 
 
-@extension.connect
-def cachebuster(sender, **kwargs):
+@extension
+def cachebuster(**kwargs):
     return int(time.time())
 
 
-@extension.connect
-def fileinfo(sender, **kwargs):
+@extension
+def fileinfo(**kwargs):
     assets = {}
     config = kwargs["config"]["extensions"]["fileinfo"]
 

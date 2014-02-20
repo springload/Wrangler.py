@@ -15,17 +15,19 @@ class Reader():
     }
 
     def __init__(self, config):
-        self.input_dir = config['input_dir']
-        self.ignore_files = config['ignore']
-        self.data_format = config['data_format']
-        self.nocache = config['nocache']
+        conf = config["wrangler"]
+        self.input_dir = conf['input_dir']
+        self.ignore_files = conf['ignore']
+        self.data_formats = conf['data_formats']
+        self.nocache = conf['nocache']
+        self.lib_path = conf["lib_path"]
         self.config = config
         self.check_custom_default_class()
 
 
     def check_custom_default_class(self):
         if "lib_path" in self.config:
-            filename = "%s/%s.py" % (self.config["lib_path"], self.default_class)
+            filename = "%s/%s.py" % (self.lib_path, self.default_class)
             if os.path.exists(filename):
                 self.load_class(self.default_class)
 
@@ -38,16 +40,16 @@ class Reader():
 
             if not file_class in self.classes or file_class == self.default_class:
 
-                filename = "%s/%s.py" % (self.config["lib_path"], file_class)
+                filename = "%s/%s.py" % (self.lib_path, file_class)
 
                 if not os.path.exists(filename):
-                    raise Exception("path %s doesn't exist in %s" % (file_class, self.config["lib_path"]))
+                    raise Exception("path %s doesn't exist in %s" % (file_class, self.lib_path))
 
                 directory, module_name = os.path.split(filename)
                 module_name = os.path.splitext(module_name)[0]
 
                 path = list(sys.path)
-                sys.path.insert(0, self.config["lib_path"])
+                sys.path.insert(0, self.lib_path)
 
                 try:
                     module = __import__(module_name)
@@ -63,7 +65,7 @@ class Reader():
     
 
     def init_cache(self):
-        if (self.config["nocache"]):
+        if (self.nocache):
             try:
                 os.remove("wrangler_cache.db")
             except OSError:
@@ -103,7 +105,7 @@ class Reader():
         else:
             node.tag = 'file'
 
-            if basename == "index.%s" % (self.data_format):
+            if basename.startswith("index") and basename.endswith(tuple(self.data_formats)):
                 node.is_index = True 
             return node
 
@@ -115,13 +117,16 @@ class Reader():
         if not a_cargo:
             if a.tag == "dir":
                 for _child in a.children:
-                    if _child.path.endswith("index.%s" % (self.config["data_format"])):
+                    filename = os.path.basename(_child.path)
+
+                    if filename.startswith("index") and filename.endswith(tuple(self.data_formats)):
                         a_cargo = _child.get_cargo()
                
         if not b_cargo:
             if b.tag == "dir":
                 for _child in b.children:
-                    if _child.path.endswith("index.%s" % (self.config["data_format"])):
+                    filename = os.path.basename(_child.path)
+                    if filename.startswith("index") and filename.endswith(tuple(self.data_formats)):
                         b_cargo = _child.get_cargo()
                        
         try:
@@ -170,16 +175,17 @@ class Reader():
         Load parsers based on the file contents and cache 'em up so we can
         re-use them.
         """
-        if not data_format in self.parsers:
-            for parser in dir(Parsers):
-                p =  getattr(Parsers, parser)
-                if hasattr(p, "__bases__") and hasattr(p, "accepts"):
-                    if data_format == p.accepts:
-                        self.parsers[data_format] =  p(self.input_dir, "")
-        try: 
-            return self.parsers[data_format]
-        except:
-            raise Exception("No parser found for %s" % (data_format))
+        if data_format:
+            if not data_format in self.parsers:
+                for parser in dir(Parsers):
+                    p =  getattr(Parsers, parser)
+                    if hasattr(p, "__bases__") and hasattr(p, "accepts"):
+                        if data_format == p.accepts:
+                            self.parsers[data_format] =  p(self.input_dir, "")
+            try: 
+                return self.parsers[data_format]
+            except:
+                raise Exception("No parser found for %s" % (data_format))
 
 
     def new_item(self, shelf, filename):

@@ -99,7 +99,7 @@ images path, you can call `{{ site.paths.images }}` and save yourself some typin
 
 # Command line options
 
-## wrangler create
+### wrangler create
 
 Takes a single positional argument, the path in which to create your new project:
 ```bash
@@ -111,7 +111,7 @@ wrangler create my-sweet-site
 ```
 
 
-## wrangler build
+### wrangler build
 
 `input_dir`     Input directory such as `site/content`
 `output_dir`    Output directory such as `www`
@@ -154,7 +154,7 @@ wrangler build content www -c site/config/wrangler.yaml
 ```
 
 
-## wrangler watch
+### wrangler watch
 
 Has all the same options as `wrangler build`
 
@@ -165,7 +165,7 @@ wrangler watch content www --verbose
 ```
 
 
-## wrangler serve
+### wrangler serve
 
 Accepts one positional argument (the directory to serve) and an optional `--port` (default 8000).
 
@@ -174,7 +174,7 @@ wrangler serve www --port 8001
 ```
 
 
-## wrangler clean
+### wrangler clean
 
 Remove the template cache and the object cache from the 'var' directory.
 
@@ -218,19 +218,7 @@ If you look in your `wrangler.yaml` file, you'll notice it accepts three file ty
 Wrangler includes three parsers by default, `Yaml`, `Markdown` and `Json`, which consume the input files and
 represent them as meaningful data.
 
-What's meaningful to wrangler? Any dict with a `meta` and `data` key:
-```
-data = {
-  "meta": {
-    "title": "A page"
-    "template": "content.j2"
-  },
-  "data": {
-    "content": "page content here..."
-  }
-}
-```
-
+TODO: make these better
 
 ## Hooks and extensions
 
@@ -274,11 +262,10 @@ For instance, this banal script:
 
 ```python
 # lib/my_extensions.py
-from blinker import signal
+from wrangler.Core import extension
 
-extension = signal('wranglerExtension')
 
-@extension.connect
+@extension
 def my_extension(sender, **kwargs):
     return "This is my basic extension!"
 

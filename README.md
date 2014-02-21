@@ -12,11 +12,11 @@ Features:
 * Extensible with custom filters, extensions, hooks, and parsers
 
 
-At Springload, we often need to whip up static sites, but we've struggled to find a tool that _just
-lets us get on with it_. Enter the Wrangler. It won't expect your content to be formatted as a
+At Springload, we often need to whip up static sites, but we've struggled to find a tool that, well..
+lets us get on with it. Enter the Wrangler. It won't expect your content to be formatted as a
 series of blog posts. It doesn't copy static assets or process SaSS or make coffee.
 
-It does one thing, and one thing well.
+It does one thing, and it does that one thing pretty well.
 
 We hope you like it.
 

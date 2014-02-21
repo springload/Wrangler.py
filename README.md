@@ -494,7 +494,6 @@ for dealing with the nodes.
 
 # Pseudocode
 NodeGraph:
-
     # The nodes in their hierarchical structure, eg:
     tree:        
         Node:
@@ -552,7 +551,7 @@ class GoldBullion(object):
 
 the_node = Node("index", "content/index.md", parent=None, cargo=None)
 
-the_node.add_cargo(GoldBullion)
+the_node.add_cargo(GoldBullion())
 
 cargo = the_node.get_cargo()
 

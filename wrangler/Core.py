@@ -7,6 +7,7 @@ import itertools
 from copy import deepcopy
 from blinker import signal
 import messages as messages
+import shelve 
 
 
 """
@@ -481,6 +482,8 @@ Shares our findings with the rest of the class
 
 """
 class Reporter(object):
+    last_build_time = None
+
     def __init__(self, config, config_path):
         self.config = config["wrangler"]
         self.config_path = config_path
@@ -508,13 +511,14 @@ class Reporter(object):
         Get the last run time. Useful for checking what stuff's changed since we
         last ran the script.
         """
-        last_time = 0
-        if os.path.exists(self.config['build_cache_file']):
-            with open(self.config['build_cache_file'], "r") as buildFile: 
-                lines = map(float, buildFile.readline().split())
-                if len(lines) > 0:
-                    last_time = lines[0]
-        return last_time
+        if not self.last_build_time:
+            try:
+                if os.path.exists(self.config['build_cache_file']):
+                    shelf = shelve.open(self.config['build_cache_file'])
+                    self.last_build_time = shelf["last_build_time"] if "last_build_time" in shelf else 0
+            except:
+                self.last_build_time = 0
+        return self.last_build_time
 
     def get_config_modified_time(self):
         """
@@ -525,17 +529,21 @@ class Reporter(object):
             mtime = os.path.getmtime(self.config_path)
         return mtime
 
-    def set_last_build_time(self, update_time=None):
+    def set_last_build_time(self, update_time=time.time()):
         """
         Save the last successful run time in a var
         """
-        if (update_time == None):
-            update_time = time.time()
 
         self.update_log(self.log_data, self.get_last_build_time())
 
-        with open(self.config['build_cache_file'], "w") as buildFile:
-            buildFile.write("%s" % (update_time))
+        try:
+            if os.path.exists(self.config['build_cache_file']):
+                shelf = shelve.open(self.config['build_cache_file'])
+                shelf["last_build_time"] = update_time
+        except:
+            pass
+        # with open(self.config['build_log'], "w") as buildFile:
+        #     buildFile.write("%s" % (update_time))
 
     def pretty(self, colour, message):
         colours = {

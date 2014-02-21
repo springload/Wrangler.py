@@ -153,7 +153,7 @@ Nice HR you got there.
 Use the metadata for anything related to the page. You can throw whatever you like in here,
 but there's a few reserved words:
 
-```
+```yaml
 meta:
     title: "Musings on the pronounciation of doge"
     alias: "Doge"

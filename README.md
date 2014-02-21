@@ -5,9 +5,10 @@ Wrangler is a static site generator for people who aren't building blogs.
 Features:
 * Write your content in YAML, JSON or Markdown
 * Templates with the awesome [Jinja2](http://jinja.pocoo.org/docs/templates/) library
-* Really quick (200 pages, 88 templates in < 4 seconds).
+* Really quick (well, it's relative, but 200 pages, 88 templates in < 4 seconds).
 * Smart caching, so only the pages you change are re-rendered
 * Simple CLI gets you up and running in a few seconds
+* Built-in basic HTTP server and file watching
 * Scalable (will build a 5,000 page site without complaining)
 * Extensible with custom filters, extensions, hooks, and parsers
 

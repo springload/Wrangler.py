@@ -414,7 +414,28 @@ If you look in your `wrangler.yaml` file, you'll notice it accepts three file ty
 Wrangler includes three parsers by default, `Yaml`, `Markdown` and `Json`, which consume the input files and
 represent them as meaningful data.
 
-TODO: make these better
+
+#### Rolling your own
+
+The auto-loader looks for anything that sublcasses `wrangler.Core.Parser`. 
+
+For instance, you could do this somewhere in your `lib/Parsers.py` to support text format
+
+```
+from wrangler.Core import Parser
+from lxml import objectify
+from collections import defaultdict
+
+class XmlParser(Parser):
+    accepts = ["xml", "robotlanguage"]
+
+    def interpret(self, file_contents):
+        return root = objectify.fromstring(file_contents)
+
+
+```
+
+
 
 ## Hooks and extensions
 

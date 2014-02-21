@@ -219,7 +219,7 @@ class Reader():
                 if page_data:
                     page_classname = self.default_class
 
-                    if "class" in page_data["meta"]:
+                    if "class" in page_data["meta"] and page_data["meta"]["class"] != None:
                         page_classname = page_data["meta"]["class"]
 
                     PageClass = self.load_class(page_classname)

@@ -13,7 +13,7 @@ We hope you like it.
 
 
 Documentation
---------
+-------------
 
 Full documentation lives over here at `GitHub <https://github.com/springload/Wrangler.py>`_.
 
@@ -23,7 +23,7 @@ Install the wrangler with::
 
 
 Setup
---------
+-----
 
 To get started, wrangler can generate a project for you.
 

@@ -113,8 +113,8 @@ data:
         "description": "My cool page!"
     },
     "data": {
-        content: "Here's some page content!"
-        blocks: [
+        "content": "Here's some page content!"
+        "blocks": [
             "Lots of content",
             "even more content",
             "wow, so much content! "

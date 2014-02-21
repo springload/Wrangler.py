@@ -71,6 +71,198 @@ my-site/
 * `var` - holds the template cache and the file objects cache (wrangler uses the out-of-the-box Pickle and Shelve combo)
 
 
+
+# Working with content
+
+Wrangler assumes you're working with some kind of structured data, and you want to translate
+those data files out to HTML (or even classic ASP, if that's your thing).  
+
+Three parsers are included in the package: json, yaml and markdown (with yaml front-matter). They
+operate on a per-file basis, so this is perfectly valid:
+
+```bash
+my-site/
+|--content
+|----index.yaml
+|----page-2.json
+|----page-3.md
+```
+
+#### YAML (.yml, .yaml)
+
+```yaml
+meta:
+    title: My title
+    template: template.j2
+    description: "My cool page!"
+data:
+    content: "Here's some page content!"
+    blocks:
+        - "Lots of content"
+        - "even more content"
+        - "wow, so much content! "
+```
+
+#### JSON (.js, .json)
+
+```json
+{
+    "meta": {
+        "title": "My title"
+        "template": "template.j2"
+        "description": "My cool page!"
+    },
+    "data": {
+        content: "Here's some page content!"
+        blocks: [
+            "Lots of content",
+            "even more content",
+            "wow, so much content! "
+        ]
+    }
+}
+```
+
+#### Markdown (.md, .markdown)
+
+```markdown
+---
+meta:
+    title: My title
+    template: template.j2
+    description: "Markdown uses yaml front-matter"
+---
+# A heading!
+Some paragraph text
+
+## Another heading! 
+Even more text
+
+---
+Nice HR you got there.
+
+* A list
+* with some
+* list items
+
+```
+
+
+## Metadata options
+
+Use the metadata for anything related to the page. You can throw whatever you like in here,
+but there's a few reserved words:
+
+```
+meta:
+    title: "Musings on the pronounciation of doge"
+    alias: "Doge"
+    template: "template.j2"
+    class: DogePage
+    hide_from_nav: true
+    description: "Is it dog-e, doog, douge, douche? How do I properly refer to this meme?"
+    keywords: ["much", "analytics", "such", "SEO"]
+    output_file_extension: asp
+    weight: 1
+    thumbnail: /assets/images/thumb/doge-100x100.jpg
+    related:
+        - content/other-page.yaml
+        - content/pages/this-page-here.yaml
+```
+
+**title**           The page name in the navigation (and probably your title tag too) 
+
+**template**        Template path, relative to your wrangler.yaml's `templates_dir`
+
+**alias**           Shorthand for the title, which can be used in the navigation instead
+
+**class**           Attempts to replace the Python class for the page object. Must be subclass of `wrangler.Core.Page` 
+
+**hide_from_nav**   Hide this page from the navigation tree.
+
+**description**     What it says on the tin
+
+**keywords**        A List of keywords
+
+**output_file_extension**   Override the default `output_file_extension` from wrangler.yaml. The page will be rendered with this extension.
+
+**weight**          Handy for ordering pages, from low to high. By default, wrangler will use the filesystem's alphabetical sorting.  
+
+**thumbnail**       Path to a thumbnail image
+
+**related**         A list of related pages. In your template, this will let you get some basic info about other pages (like the title and description).
+
+
+### Generated metadata
+
+The wrangler adds some things to your metadata automatically, in your templates you can access:
+
+```jinja
+
+{{ meta.url }}
+{{ meta.segments }}
+{{ meta.filepath }}
+{{ meta.mtime }}
+
+{{ meta.children }}
+{{ meta.parents }}
+{{ meta.parents_siblings }}
+
+
+```
+
+**url**                 The path to the built file, relative to the `output_dir`, for instance `/`
+**segments**            A list of all the url segments: `["sub-directory", "index.html"]`      
+**filepath**            The name of the input file
+**mtile**               The modified time. You could use this to build a blog timestamp, for instance.
+**children**            Any direct children of the current directory
+**parents**             All the nodes between the current file and `/`
+**parents_siblings**    The siblings of the parent directory.
+
+
+## Page data
+
+Page data is entirely optional.
+
+Let's look at this little page, `custom-page.yaml` You can throw wrangler a page with no data, and hard-code everything in the template,
+`custom-page.j2` if you want. 
+
+```yaml
+meta:
+    title: No content!
+    template: custom-page.j2
+    output_file_extension: txt
+```
+
+This will build `www/custom-page.txt`. 
+
+
+### Accessing data
+
+Wrangler ships with a jinja2 markdown filter. If you're using a markdown file, the markdown is available at `data.content`.
+Pipe the content to the markdown filter, and you're done.
+
+```jinja
+<div class="content">
+    {{ data.content|markdown }}
+</div>
+```
+
+Markdown is a fantastic writing format, but it can present some limitations
+when you're dealing with more structured data. For YAML and JSON files, access parts of the `data` dictionary:
+
+```jinja
+<div class="content">
+{{ data.content }}
+{% for block in data.blocks %}
+    <p>{{ block }}</p>
+{% endfor %}
+</div>
+```
+
+
+
+
 ## Configuration
 
 The editable options for the wrangler are saved in the `wrangler.yaml` file in your project root.
@@ -81,9 +273,17 @@ Crack it open, and you'll find three nodes: `wrangler`, `site` and `extensions`
 This contains the core configuration. The heavy lifting. The hard-core stuff.
 
 
-
 ### extensions
-Configures any extensions you've got set up. Three default extensions are included, `sitemap`, `fileinfo`, and `cachebuster`
+Configure any extensions you've set up here. Extensions let you run any python function you want, and inject
+the results into your templates. Read more in the extensions section.
+
+
+
+```jinja
+{{ extensions.cachebuster }}
+```
+
+Some default extensions are included: `sitemap`, `fileinfo`, and `cachebuster`
 
 
 ### site
@@ -184,12 +384,6 @@ Remove the template cache and the object cache from the 'var' directory.
 wrangler clean
 ```
 
-# Working with your content
-
-Setting up page metadata
-
-Nav options, etc
-
 
 
 
@@ -270,7 +464,7 @@ from wrangler.Core import extension
 def my_extension(sender, **kwargs):
     # Add some config to your YAML file and access it here: 
     config = kwargs['config']['extensions']['my_extension']
-    return "This is my basic extension!"
+    return config["string_to_print"]
 
 ```
 
@@ -286,6 +480,18 @@ Which results in this output:
 ```html
 <i>"This is my basic extension!"</i>
 ```
+
+
+#### Configuring extensions
+
+In your `wrangler.yaml` there's a section for managing your extensions:
+
+```yaml
+    # My extension just prints a string... not very exciting!
+    my_extension:
+        string_to_print: "This is my basic extension!" 
+```
+
 
 
 ### Filters

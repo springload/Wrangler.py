@@ -26,7 +26,7 @@ class Parser(object):
             "title": None,
             "template": None,
             "description": None,
-            "view": None,
+            "class": None,
             "output_file_extension": None
         }
     }

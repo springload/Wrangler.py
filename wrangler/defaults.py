@@ -2,7 +2,7 @@ import os
 import yaml
 
 cwd = os.path.dirname(os.path.abspath(__file__))
-content = "defaults/index.yaml"
+content = "defaults/index.md"
 template = "defaults/template.j2"
 config = "defaults/wrangler.yaml"
 lib = "defaults/examples.py"

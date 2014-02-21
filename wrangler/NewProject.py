@@ -13,7 +13,7 @@ class NewProject(object):
     directories = ["content", "templates", "var", "www", "lib"]
     default_files = [
             {
-                "path": "content/index.yaml",
+                "path": "content/index.md",
                 "content": defaults.content_template()
             },
             {

@@ -3,13 +3,13 @@
 Wrangler is a static site generator for people who aren't building blogs.
 
 Features:
-* Deadly stack of awesomeness: Python, YAML, and Jinja2.
-* Supports Markdown and RST out of the box, plus custom filters
+* Write your content in YAML, JSON or Markdown
+* Templates with the awesome [Jinja2](http://jinja.pocoo.org/docs/templates/) library
 * Really quick (200 pages, 88 templates in < 4 seconds).
 * Smart caching, so only the pages you change are re-rendered
-* Friendly CLI
-* Scalable (will happily build a 10,000 page site without complaining)
-* Used in the real-world 
+* Simple CLI gets you up and running in a few seconds
+* Scalable (will build a 5,000 page site without complaining)
+* Extensible with custom filters, extensions, hooks, and parsers
 
 
 # Quickstart
@@ -32,23 +32,23 @@ This will create a bunch of directories. To check it works, build the little aut
 wrangler build content www
 ```
 
-Serve your site via an engine of your choice, or the handy built-in server:
+Serve your site via an engine of your choice, or the handy built-in server at `http://127.0.0.1:8000/`:
 
 ```
 wrangler serve www
 ```
 
 Want to watch your content and templates for changes and automatically re-build them?
-Easy, just call `watch`. The watch task takes all the same options as `build`. 
+There's an app for that. The watch task takes all the same options as `build`. 
 
 ```
 wrangler watch content www
 ```
 
 
-# Okay, that works, but how?
+# Okay, that works, what now?
 
-## Files
+## Wrangler's file structure
 
 Wrangler follows a pretty simple filesystem convention:
 
@@ -70,6 +70,7 @@ my-site/
 * `lib` - custom extensions, classes, hooks, etc go in here. Write some python modules and pass the results back to wrangler
 * `var` - holds the template cache and the file objects cache (wrangler uses the out-of-the-box Pickle and Shelve combo)
 
+All these paths can be changed in `wrangler.yaml`
 
 
 # Working with content
@@ -127,10 +128,9 @@ data:
 
 ```markdown
 ---
-meta:
-    title: My title
-    template: template.j2
-    description: "Markdown uses yaml front-matter"
+title: My title
+template: template.j2
+description: "Markdown uses yaml front-matter"
 ---
 # A heading!
 Some paragraph text

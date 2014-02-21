@@ -108,12 +108,12 @@ data:
 ```json
 {
     "meta": {
-        "title": "My title"
-        "template": "template.j2"
+        "title": "My title",
+        "template": "template.j2",
         "description": "My cool page!"
     },
     "data": {
-        "content": "Here's some page content!"
+        "content": "Here's some page content!",
         "blocks": [
             "Lots of content",
             "even more content",

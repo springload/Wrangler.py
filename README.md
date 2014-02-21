@@ -227,7 +227,7 @@ The wrangler adds some things to your metadata automatically, in your templates 
 
 **filepath**            The name of the input file
 
-**mtile**               The modified time. You could use this to build a blog timestamp, for instance.
+**mtime**               The modified time. You could use this to build a blog timestamp, for instance.
 
 **children**            Any direct children of the current directory
 
@@ -266,7 +266,8 @@ Pipe the content to the markdown filter, and you're done.
 ```
 
 Markdown is a fantastic writing format, but it can present some limitations
-when you're dealing with more structured data. For YAML and JSON files, access parts of the `data` dictionary:
+when you're dealing with more structured data. For YAML and JSON files, access parts of the `data` dictionary and wire them up
+as you see fit:
 
 ```jinja
 <div class="content">
@@ -277,7 +278,7 @@ when you're dealing with more structured data. For YAML and JSON files, access p
 </div>
 ```
 
-
+---
 
 
 ## Configuration
@@ -286,14 +287,74 @@ The editable options for the wrangler are saved in the `wrangler.yaml` file in y
 
 Crack it open, and you'll find three nodes: `wrangler`, `site` and `extensions`
 
-### wrangler
-This contains the core configuration. The heavy lifting. The hard-core stuff.
 
+#### wrangler
 
-### extensions
+This is the core config, the hard-core stuff. It looks a little something like this:
+
+```yaml
+wrangler: 
+
+    # Template directory relative to your project root
+    templates_dir: templates
+
+    # Default template to load if no template is specified for a page
+    default_template: template.j2
+
+    # Default output file extension. Note this can be overwritten in the content
+    # by specifying 'output_file_extension' in the 'meta' area
+    output_file_extension: html
+
+    # Supported data formats. Ensure a parser is registered for each type.
+    # More information about parsers can be found in the link at the top of the file.
+    data_formats: ['yaml', 'yml', 'json', 'js', 'md', 'markdown']
+
+    # Ignore hidden files, and files starting with underscores
+    ignore: ['.','_']
+
+    # Prints all the internal plumbing output to stdout
+    verbose: false
+
+    # Always force all pages to be rendered
+    force: false
+
+    # Run without the cache (useful for developing custom page classes, to prevent them
+    # from being cached each run).
+    nocache: false
+
+    # The location of the template cache zip file. 
+    # Ensure the var path exists and is writeable by the user
+    build_cache_file: var/build.cache
+    compiled_templates_file: var/jinja
+    compiled_templates_log: var/jinja.log
+
+    # Custom methods/classes go in the lib directory, for instance
+    # lib/Page.py or lib/Extensions.py or lib/Filters.py
+    lib_path: lib
+
+# file continues....
+```
+
+#### extensions
 Configure any extensions you've set up here. Extensions let you run any python function you want, and inject
-the results into your templates. Read more in the extensions section.
+the results into your templates.
 
+
+```yaml
+# wrangler.yaml continued...
+extensions:
+    # Sitemap generates a tree structure of your entire site, relative to the
+    # webroot specified here 
+    # 
+    #   {{ extensions.sitemap }}
+    # 
+    # We leave it up to you to iterate over the sitemap and print everything in
+    # a pretty manner, but this gist might get you started:
+    # https://gist.github.com/joshbarr/111
+
+    sitemap: 
+        webroot: /
+```
 
 
 ```jinja
@@ -303,18 +364,28 @@ the results into your templates. Read more in the extensions section.
 Some default extensions are included: `sitemap`, `fileinfo`, and `cachebuster`
 
 
-### site
-Site vars are available inside your templates as children of the `site` object. For instance, to get the 
-images path, you can call `{{ site.paths.images }}` and save yourself some typing. 
+#### site
+Site vars are site-wide variables, available inside your templates as children of the `site` object.
+
+For instance, to get the images path, you can call `{{ site.paths.images }}` and save yourself some typing. 
+
+```yaml
+# wrangler.yaml continued...
+site:
+    paths: 
+        css: assets/css
+        js: assets/js
+        assets: assets
+```
 
 ```jinja
 {# Hey, it's those handy vars I set in my site_vars #}
 {{ site.paths.css }}
 ```
 
-The yaml file documents all the options and what they do. 
+All this documentation is in the `wrangler.yaml` file as well, so you won't get lost! 
 
-
+---
 
 # Command line options
 
@@ -401,15 +472,103 @@ Remove the template cache and the object cache from the 'var' directory.
 wrangler clean
 ```
 
-
+---
 
 
 # Under the hood
 
+Wrangler loads all the python modules found in your project's `lib` directory when it boots.
+
+This gives you the power to extend the core functions and manipulate page data - for instance you could
+load some values from a database and make them available in your templates. 
+
+
+## Internal structure
+
+When you call `build`, wrangler builds a representation of the tree structure in your `content/` directory.
+
+It's using a doubly linked list of `Node` objects, which get mashed into a `NodeGraph`, a handy container
+for dealing with the nodes.
+
+```yaml
+
+# Pseudocode
+NodeGraph:
+
+    # The nodes in their hierarchical structure, eg:
+    tree:        
+        Node:
+            children:
+                - Node:
+                    children:
+                        - Node
+                - Node:
+                    children:
+                        - Node
+                        - Node
+                        - Node
+   
+    # The 'all' dictionary is the same nodes represented in a flat structure.
+    # This can be much quicker to iterate over than the tree, and you can
+    # access both from within your hooks and extensions.
+    # The filepath is used as the unique key.
+    all:
+        
+        content/index.md:
+            Node:
+                # node's data...
+
+        content/other-page.md:
+            Node:
+                # node's data...
+```
+
+Nodes can access their children, and also their parents:
+
+```yaml
+# More pseudocode
+Node:
+    path: "content/index.md"
+    children:
+        - Node:
+        - Node:
+        - Node:
+    parent:
+        Node:
+```
+
+To keep things tidy, the Node object doesn't hold a representation of the page data directly on it – 
+nodes are just containers.
+
+Following the ideas in [this discussion](http://stackoverflow.com/questions/280243/python-linked-list),
+the Node has a __cargo__ property that holds the _real_ page class:
+
+
+```python
+from wrangler.Core import Node
+
+class GoldBullion(object):
+    price = 1200
+
+the_node = Node("index", "content/index.md", parent=None, cargo=None)
+
+the_node.add_cargo(GoldBullion)
+
+cargo = the_node.get_cargo()
+
+print cargo.price
+
+```
+
 ## The page class
 
-Wrangler loads all the python modules found in your project's `lib` directory. This lets you do things like
-replace the default `Page` object with one of your own:
+Pages hold a `dict` representation of your source file's data, and provide
+a consistent way for the `Renderer` to access the data. To create a custom page,
+just sub-class `wrangler.Core.Page` and it'll be auto-loaded. 
+
+**Handy tip:** If your custom class has the name of `Page`, it'll overwrite the 
+default `Page` object for all pages.
+
 
 ```python
 # lib/Page.py
@@ -435,6 +594,89 @@ class Page(wrangler.Page):
         }
 
 ```
+
+In our example above, we're modifying the three main page methods, `get_content()`, `get_metadata()`, and `get_properties()`
+
+##### get_content()
+
+Called when the when the Page is rendered, this is available in your template as the `data` object:
+
+```jinja
+<!doctype html>
+    <div class='dump-of-data-object'>
+        {{ data.content }}
+    </div>
+```
+
+##### get_metadata()
+
+Called when the when the Page is rendered, this is the `meta` object:
+
+```jinja
+<!doctype html>
+    <title>{{ meta.title }}
+```
+
+##### get_properties()
+
+A little trickier to explain, but still awesome. When a `Node` is rendered, it requests 
+certain information about pages related to the current page, such as the children, siblings,
+parents, and manually-related pages. 
+
+Rather than share _everything_ with _everything else_, each `Page` class describes the
+basic information that it's happy to share with other pages.
+
+```python
+    def get_properties(self):
+        return {
+            "title": self.get_title(),
+            "alias": self.get_short_title(),
+            "url": self.get_tidy_url(),
+            "show_in_navigation": self.show_in_navigation(),
+            "weight": self.get_weight(),
+            
+            # Let's add the modified time, so our theoretical parent
+            # page could know when we last saved the file. 
+            "mtime": self.getmtime()
+        }
+``` 
+
+### Custom page classes
+
+Let's look at a really simple example, a custom page class which reverses
+all the text on the page. Very practical. 
+
+Firstly, set the `class` property in your page meta to tell wrangler which class
+to load:
+
+content/custom.md:
+```markdown
+---
+class: RightToLeft
+---
+# My custom page
+
+With its custom content.
+```
+
+Then create a new class somewhere in your `lib/` directory that subclasses `Page`.
+It doesn't matter where inside your `lib/` directory it ends up, the only rule is that
+it has to subclass the `Page` object:
+
+lib/pages.py
+```python
+import wrangler.Core as wrangler
+
+class RightToLeft(wrangler.Page)
+    def get_content(self):
+        for key, val in self.data["data"]:
+            self.data["data"][key] = val[::-1]
+        return self.data["data"]
+
+```
+
+Great! Our page will be printed with right-to-left text.
+
 
 
 ## Content parsers

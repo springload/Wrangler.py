@@ -522,7 +522,7 @@ Wrangler allows you to extend Jinja2 with custom Filters.
 Filters can should go in any file in your lib directory, `lib/`.
 They're hooked up via a decorator, aptly named `template_filter`
 
-```
+```python
 #lib/filters.py
 from wrangler.Core import template_filter
 from jinja2 import contextfilter
@@ -537,7 +537,7 @@ can import them and apply them to your function as well:
 
 Read more about [jinja2's context filters](http://jinja.pocoo.org/docs/api/#writing-filters)
 
-```
+```python
 #lib/filters.py
 from wrangler.Core import template_filter
 from jinja2 import contextfilter

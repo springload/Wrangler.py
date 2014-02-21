@@ -404,7 +404,7 @@ class Page(wrangler.Page):
 
     def get_metadata(self):
         return self.data["meta"]
-        
+
     def get_properties(self):
         print "Hey, I'm a custom page instance!"
         return {
@@ -433,7 +433,7 @@ The auto-loader looks for anything that sublcasses `wrangler.Core.Parser`.
 
 For instance, you could do this somewhere in your `lib/Parsers.py` to support text format
 
-```
+```python
 from wrangler.Core import Parser
 from lxml import objectify
 from collections import defaultdict

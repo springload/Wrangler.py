@@ -4,13 +4,21 @@ Wrangler is a static site generator for people who aren't building blogs.
 
 Features:
 * Write your content in YAML, JSON or Markdown
-* Templates with the awesome [Jinja2](http://jinja.pocoo.org/docs/templates/) library
+* Build your templates with the awesome [Jinja2](http://jinja.pocoo.org/docs/templates/) library. If you know Twig, it'll be instantly familiar.
 * Really quick (well, it's relative, but 200 pages, 88 templates in < 4 seconds).
 * Smart caching, so only the pages you change are re-rendered
 * Simple CLI gets you up and running in a few seconds
 * Built-in basic HTTP server and file watching
-* Scalable (will build a 5,000 page site without complaining)
 * Extensible with custom filters, extensions, hooks, and parsers
+
+
+At Springload, we often need to whip up static sites, but we've struggled to find a tool that _just
+lets us get on with it_. Enter the Wrangler. It won't expect your content to be formatted as a
+series of blog posts. It doesn't copy static assets or process SaSS or make coffee.
+
+It does one thing, and one thing well.
+
+We hope you like it.
 
 
 # Quickstart
@@ -148,6 +156,7 @@ Nice HR you got there.
 
 ```
 
+Here's a nice [markdown cheatsheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
 
 ## Metadata options
 

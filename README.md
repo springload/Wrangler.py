@@ -110,7 +110,7 @@ data:
     blocks:
         - "Lots of content"
         - "even more content"
-        - "wow, so much content! "
+        - "wow, so much content!"
 ```
 
 #### JSON (.js, .json)
@@ -222,12 +222,19 @@ The wrangler adds some things to your metadata automatically, in your templates 
 ```
 
 **url**                 The path to the built file, relative to the `output_dir`, for instance `/`
+
 **segments**            A list of all the url segments: `["sub-directory", "index.html"]`      
+
 **filepath**            The name of the input file
+
 **mtile**               The modified time. You could use this to build a blog timestamp, for instance.
+
 **children**            Any direct children of the current directory
+
 **parents**             All the nodes between the current file and `/`
+
 **parents_siblings**    The siblings of the parent directory.
+
 
 
 ## Page data

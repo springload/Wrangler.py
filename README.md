@@ -399,11 +399,23 @@ replace the default `Page` object with one of your own:
 import wrangler.Core as wrangler
 
 class Page(wrangler.Page):
-  def get_properties(self):
-    print "Hey, I'm a custom page instance!"
-    return {
+    def get_content(self):
+        return self.data["data"]
 
-    }
+    def get_metadata(self):
+        return self.data["meta"]
+        
+    def get_properties(self):
+        print "Hey, I'm a custom page instance!"
+        return {
+            "title": self.get_title(),
+            "alias": self.get_short_title(),
+            "description": self.get_meta_description(),
+            "url": self.get_tidy_url(),
+            "show_in_navigation": self.show_in_navigation(),
+            "weight": self.get_weight(),
+            "thumbnail": self.get_thumbnail()
+        }
 
 ```
 

@@ -180,27 +180,49 @@ meta:
         - content/pages/this-page-here.yaml
 ```
 
-**title**           The page name in the navigation (and probably your title tag too) 
+##### title           
 
-**template**        Template path, relative to your wrangler.yaml's `templates_dir`
+The page name in the navigation (and probably your title tag too) 
 
-**alias**           Shorthand for the title, which can be used in the navigation instead
+##### template        
 
-**class**           Attempts to replace the Python class for the page object. Must be subclass of `wrangler.Core.Page` 
+Template path, relative to your wrangler.yaml's `templates_dir`
 
-**hide_from_nav**   Hide this page from the navigation tree.
+##### alias           
 
-**description**     What it says on the tin
+Shorthand for the title, which can be used in the navigation instead
 
-**keywords**        A List of keywords
+##### class           
 
-**output_file_extension**   Override the default `output_file_extension` from wrangler.yaml. The page will be rendered with this extension.
+Attempts to replace the Python class for the page object. Must be subclass of `wrangler.Core.Page` 
 
-**weight**          Handy for ordering pages, from low to high. By default, wrangler will use the filesystem's alphabetical sorting.  
+##### hide_from_nav   
 
-**thumbnail**       Path to a thumbnail image
+Hide this page from the navigation tree.
 
-**related**         A list of related pages. In your template, this will let you get some basic info about other pages (like the title and description).
+##### description     
+
+What it says on the tin
+
+##### keywords        
+
+A List of keywords
+
+##### output_file_extension   
+
+Override the default `output_file_extension` from wrangler.yaml. The page will be rendered with this extension.
+
+##### weight          
+
+Handy for ordering pages, from low to high. By default, wrangler will use the filesystem's alphabetical sorting.  
+
+##### thumbnail       
+
+Path to a thumbnail image
+
+##### related         
+
+A list of related pages. In your template, this will let you get some basic info about other pages (like the title and description).
 
 
 ### Generated metadata
@@ -221,19 +243,33 @@ The wrangler adds some things to your metadata automatically, in your templates 
 
 ```
 
-**url**                 The path to the built file, relative to the `output_dir`, for instance `/`
+##### url                 
 
-**segments**            A list of all the url segments: `["sub-directory", "index.html"]`      
+The path to the built file, relative to the `output_dir`, for instance `/`
 
-**filepath**            The name of the input file
+##### segments            
 
-**mtime**               The modified time. You could use this to build a blog timestamp, for instance.
+A list of all the url segments: `["sub-directory", "index.html"]`      
 
-**children**            Any direct children of the current directory
+##### filepath            
 
-**parents**             All the nodes between the current file and `/`
+The name of the input file
 
-**parents_siblings**    The siblings of the parent directory.
+##### mtime               
+
+The modified time. You could use this to build a blog timestamp, for instance.
+
+##### children            
+
+Any direct children of the current directory
+
+##### parents             
+
+All the nodes between the current file and `/`
+
+##### parents_siblings    
+
+The siblings of the parent directory.
 
 
 

@@ -46,7 +46,7 @@ wrangler watch content www
 ```
 
 
-# Okay, that works, but what did we just do?
+# Okay, that works, but how?
 
 ## Files
 

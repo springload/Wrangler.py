@@ -205,7 +205,7 @@ class Wrangler(object):
         self.graph = self._reader.fetch()
 
         total_nodes = 0
-
+        
         for key, node in self.graph.all().items():
             if node.tag == 'file':
                 cargo = node.get_cargo()     

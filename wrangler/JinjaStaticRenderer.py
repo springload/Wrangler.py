@@ -50,6 +50,10 @@ class JinjaStaticRenderer(Core.Renderer):
         self.env.filters["markdown"] = markdown_filter
         self.env.filters['rst'] = rst_filter
 
+        if not os.path.exists(self.config['templates_dir']):
+            self.reporter.log("Couldn't find %s. Check your templates exist, and your config in wrangler.yaml" % (self.config['templates_dir']), "red")
+            exit()
+
         # Load up some custom, project specific filters
         # if "lib_path" in self.config and os.path.exists(self.config["lib_path"]):
 

@@ -79,8 +79,11 @@ class Reader():
                 os.remove(self.config['wrangler']['build_cache_file'])
             except OSError:
                 pass
-
-        return shelve.open(self.config['wrangler']['build_cache_file']) 
+        try:
+            return shelve.open(self.config['wrangler']['build_cache_file'])
+        except:
+            self.reporter.log("Couldn't open cache at %s. Try running `wrangler clean`" % (self.config['wrangler']['build_cache_file']), "red")
+            exit() 
     
     def save_cache(self, shelf):
         try:

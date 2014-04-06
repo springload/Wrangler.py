@@ -31,9 +31,11 @@ class Parser(object):
         }
     }
 
-    def __init__(self, input_dir, root):
+    def __init__(self, input_dir, config):
        self.input_dir = input_dir
-       self.project_root = root
+       self.config = config
+       self.project_root = ""
+       self.defaults["meta"]["template"] = config.get("wrangler").get("default_template")
 
     def interpret(self, file_contents):
         return file_contents
@@ -44,6 +46,7 @@ class Parser(object):
         except:
             print messages.parser_decode_error % (filepath, self.accepts)
             traceback.print_exc()
+            return False
 
     def read(self, file_path):
         source_file = open(file_path, 'r')
@@ -59,6 +62,10 @@ class Parser(object):
     def parse(self, filepath, file_name, relative_path,  file_contents, mtime):
         page_data = {"data":[]}
         contents = self.attempt(file_contents, filepath)
+
+        if contents == False:
+            return None
+
         _defaults = deepcopy(self.defaults)
         page_data.update(_defaults)
         
@@ -77,7 +84,7 @@ class Parser(object):
 
         sig = signal("wranglerLoadItem")
         sig.send('item', item=file_name, file_contents=file_contents, mtime=mtime)
-
+        
         return page_data
 
     def load(self, filepath):

@@ -39,7 +39,7 @@ class Reader():
             
             if hasattr(cls, "accepts"):
                 acceptable_types = []
-                parser = cls(self.input_dir, "")
+                parser = cls(self.input_dir, self.config)
                 for file_format in cls.accepts:
                     if formats_allowed_by_config:
                         if file_format in formats_allowed_by_config:
@@ -202,6 +202,7 @@ class Reader():
             print "Oops! Couldn't load \"%s\". Check the path exists." % (filename)
             return False
 
+
         if shelf.has_key(filename):
             try:
                 last_modified = shelf[filename].get_mtime()
@@ -216,17 +217,22 @@ class Reader():
             if parser:
                 page_data = parser.load(filename);
 
-                if page_data:
-                    page_classname = self.default_class
+                if page_data == None:
+                    if shelf.has_key(filename):
+                        shelf.pop(filename, None)
+                    return
 
-                    if "class" in page_data["meta"] and page_data["meta"]["class"] != None:
-                        page_classname = page_data["meta"]["class"]
+                page_classname = self.default_class
 
-                    PageClass = self.load_class(page_classname)
-                    new_page = PageClass(page_data, self.config)
-                    shelf[filename] = new_page
-                    print "\033[1;35mCaching \033[0m\033[2m%s\033[0m" % (filename)
-                    return new_page
+                if "class" in page_data["meta"] and page_data["meta"]["class"] != None:
+                    page_classname = page_data["meta"]["class"]
+
+                PageClass = self.load_class(page_classname)
+                new_page = PageClass(page_data, self.config)
+                shelf[filename] = new_page
+                print "\033[1;35mCaching \033[0m\033[2m%s\033[0m" % (filename)
+                return new_page
+
         else:
             if filename in shelf:
                 return shelf[filename]

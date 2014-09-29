@@ -1,7 +1,7 @@
 import os
 import subprocess
-import shelve 
-import sys 
+import shelve
+import sys
 import Core
 import Parsers
 from blinker import signal
@@ -36,7 +36,7 @@ class Reader():
             exit("You need at least one file format configured. Check your wrangler.yaml file.")
 
         for cls in Core.Parser.__subclasses__():
-            
+
             if hasattr(cls, "accepts"):
                 acceptable_types = []
                 parser = cls(self.input_dir, self.config)
@@ -61,16 +61,27 @@ class Reader():
                 self.classes[self.default_class] = cls
                 self.reporter.verbose("Set default class to new default subclass '%s'" % (cls.__name__), "blue")
 
-           
 
-    def load_class(self, file_class):
-        if not file_class in self.classes:
-            for cls in Core.Page.__subclasses__():
-                if cls.__name__ == file_class:
-                    self.classes[file_class] = cls
-                    self.reporter.verbose("Loaded class %s" % (file_class), "blue")
 
-        return self.classes[file_class]
+    def load_class(self, className):
+
+        def walkClass(cls, name):
+            for subclass in cls.__subclasses__():
+                if subclass.__name__ == name:
+                    return subclass;
+                else:
+                    res =  walkClass(subclass, name)
+                    if res:
+                        return res
+
+        if not className in self.classes:
+            new_class = walkClass(Core.Page, className)
+
+            if new_class:
+                self.classes[className] = new_class
+                self.reporter.verbose("Loaded class %s" % (className), "blue")
+
+        return self.classes[className]
 
 
     def init_cache(self):
@@ -83,8 +94,8 @@ class Reader():
             return shelve.open(self.config['wrangler']['build_cache_file'])
         except:
             self.reporter.log("Couldn't open cache at %s. Try running `wrangler clean`" % (self.config['wrangler']['build_cache_file']), "red")
-            exit() 
-    
+            exit()
+
     def save_cache(self, shelf):
         try:
             shelf.sync()
@@ -118,7 +129,7 @@ class Reader():
             node.tag = 'file'
 
             if basename.startswith("index") and basename.endswith(tuple(self.data_formats)):
-                node.is_index = True 
+                node.is_index = True
             return node
 
 
@@ -133,14 +144,14 @@ class Reader():
 
                     if filename.startswith("index") and filename.endswith(tuple(self.data_formats)):
                         a_cargo = _child.get_cargo()
-               
+
         if not b_cargo:
             if b.tag == "dir":
                 for _child in b.children:
                     filename = os.path.basename(_child.path)
                     if filename.startswith("index") and filename.endswith(tuple(self.data_formats)):
                         b_cargo = _child.get_cargo()
-                       
+
         try:
             a_weight = a_cargo.get_weight()
         except:
@@ -173,11 +184,11 @@ class Reader():
         self.graph = Core.NodeGraph()
         root_node = self.dir_as_tree(self.input_dir)
         self.graph.root(root_node)
-        
+
         for key, node in self.graph.all().items():
             if node.tag == "file":
                 node.add_cargo(self.new_item(shelf, node.path))
-        
+
         self.recursive_sort(root_node)
         self.save_cache(shelf)
 
@@ -185,7 +196,7 @@ class Reader():
 
 
     def load_parser_by_format(self, data_format):
-        try: 
+        try:
             return self.parsers[data_format]
         except:
             self.reporter.verbose("No parser found for %s" % (data_format), "red")
@@ -212,8 +223,8 @@ class Reader():
 
 
         if (not shelf.has_key(filename)) or (last_modified < mtime) or (self.nocache):
-            
-            # Check if custom class is set, otherwise make it a page... 
+
+            # Check if custom class is set, otherwise make it a page...
             if parser:
                 page_data = parser.load(filename);
 

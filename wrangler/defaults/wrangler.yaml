@@ -64,10 +64,7 @@ extensions:
     # 
     #   {{ extensions.sitemap }}
     # 
-    # We leave it up to you to iterate over the sitemap and print everything in
-    # a pretty manner, but this gist might get you started:
-    # https://gist.github.com/joshbarr/111
-
+    # We leave it up to you to iterate over the sitemap.
     sitemap: 
         webroot: /
 
